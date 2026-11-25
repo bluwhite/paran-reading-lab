@@ -91,12 +91,12 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <h2 id="reportTitle"></h2><p id="reportMeta"></p>
 <div class="row noPrint"><button id="refresh">새로고침</button><button id="print">보고서 인쇄 / PDF</button><button id="csv">CSV 다운로드</button></div>
 <h3 style="margin-top:24px">문장별 요약</h3><div id="aggregate" class="tableWrap"></div>
-<h3 style="margin-top:24px">참가자별 기록</h3><p class="small">문장이 나타난 뒤 스페이스바를 누를 때까지 수집한 x좌표를 왼쪽·중앙·오른쪽으로 나눕니다. 비율은 화면 안에서 수집된 표본 수를 기준으로 하며, 개별 단어의 응시나 회귀를 뜻하지 않습니다.</p><div id="detail" class="tableWrap"></div>
+<h3 style="margin-top:24px">참가자별 기록</h3><p class="small">문장이 나타난 뒤 스페이스바를 누를 때까지 수집한 x좌표를 왼쪽·중앙·오른쪽으로 나눕니다. 비율은 화면 안에서 수집된 표본 수를 기준으로 하며, 개별 단어의 응시를 뜻하지 않습니다. 추정 되돌아보기는 시간순 좌표에서 안정적으로 관측된 위치가 문장 너비의 약 3분의 1 이상 왼쪽으로 이동한 경우입니다. 유효 추적 구간이 읽기 시간의 55% 미만이거나 안정 위치 표본이 부족하면 판정 불가로 표시합니다.</p><div id="detail" class="tableWrap"></div>
 </section>
 <section id="plotPanel" class="panel" hidden>
 <h2>문장별 시선 이동</h2><label class="noPrint">참가자와 문장<select id="plotSelect"></select></label><p id="plotLabel"></p>
 <canvas id="chart" width="900" height="300" role="img" aria-label="시간에 따른 시선 가로 위치"></canvas>
-<p class="small">가로축은 문장이 표시된 뒤 지난 시간이고, 세로축은 문장 너비를 기준으로 한 가로 시선 위치입니다. 점선은 문장을 가로로 3등분한 경계입니다.</p>
+<p class="small">가로축은 문장이 표시된 뒤 지난 시간이고, 세로축은 문장 너비를 기준으로 한 가로 시선 위치입니다. 점선은 문장을 가로로 3등분한 경계이고, 빨간 점은 추정 되돌아보기입니다.</p>
 </section>
 </div>
 <div id="student" hidden>
@@ -346,6 +346,37 @@ function horizontalTrend(trial) {
  const label=total<3?'표본 부족':counts.lastIndexOf(highest)!==index?'동률':['왼쪽','중앙','오른쪽'][index];
  return {ratios,total,label,estimated:!Array.isArray(trial.sentenceX)};
 }
+// Count large leftward moves between stable positions within one continuous trace.
+function estimateReturns(trial) {
+ const limits=sentenceLimits(trial);
+ if(!limits)return null;
+ const [left,right]=limits;
+ const width=right-left;
+ const events=[];
+ let previous=null, peak=null, stable=0, covered=0;
+ for(const [t,x] of trial.samples){
+  if(!Number.isFinite(t)||!Number.isFinite(x)||x<0||x>1||x<left-width*.1||x>right+width*.1){
+   previous=peak=null;
+   continue;
+  }
+  const position=Math.min(1,Math.max(0,(x-left)/width));
+  const gap=previous?t-previous.t:Infinity;
+  if(gap<=0||gap>250)peak=null;
+  else {
+   covered+=gap;
+   if(gap>=80 && Math.abs(position-previous.position)<=.12){
+    const anchor=(position+previous.position)/2;
+    stable++;
+    if(peak!==null && peak-anchor>=.33){
+     events.push({t,position:anchor});
+     peak=anchor;
+    }else if(peak===null||anchor>peak)peak=anchor;
+   }
+  }
+  previous={t,position};
+ }
+ return stable>=3 && trial.ms>0 && covered/trial.ms>=.55?events:null;
+}
 async function loadReport(id,key) {
  el('refresh').onclick=()=>loadReport(id,key);
  el('print').onclick=()=>window.print();
@@ -362,20 +393,23 @@ async function loadReport(id,key) {
    const trials=sessions.map(session=>session.trials[i]).filter(Boolean);
    const trends=trials.map(horizontalTrend).filter(trend=>trend.total>=3);
    const ratios=[0,1,2].map(j=>trends.length?trends.reduce((sum,t)=>sum+t.ratios[j],0)/trends.length:null);
+   const assessed=trials.map(estimateReturns).filter(result=>result!==null);
+   const withReturns=assessed.filter(events=>events.length>0).length;
    const mean=trials.length?trials.reduce((total,trial)=>total+trial.ms,0)/trials.length:null;
-   return [i+1,full(item),trials.length,trends.length,...ratios.map(pct),ms(mean)];
+   return [i+1,full(item),trials.length,trends.length,...ratios.map(pct),ms(mean),assessed.length,withReturns,pct(assessed.length?withReturns/assessed.length:null)];
   });
-  table('aggregate',['문장','내용','제출','비율 분석 가능','평균 왼쪽','평균 중앙','평균 오른쪽','평균 읽기(ms)'],aggregate);
-  const labels=['참가자 번호',...(config.collectName?['이름']:[]),'상태','문장','읽기(ms)','왼쪽 비율','중앙 비율','오른쪽 비율','가장 많이 관측된 구간','가로 표본 수','문장 범위','추적률','보정 오차(px)','이해 질문','학생 답변','이해 문항 결과'];
+  table('aggregate',['문장','내용','제출','비율 분석 가능','평균 왼쪽','평균 중앙','평균 오른쪽','평균 읽기(ms)','되돌아보기 판정 가능','1회 이상','1회 이상 비율'],aggregate);
+  const labels=['참가자 번호',...(config.collectName?['이름']:[]),'상태','문장','읽기(ms)','왼쪽 비율','중앙 비율','오른쪽 비율','가장 많이 관측된 구간','가로 표본 수','문장 범위','추적률','보정 오차(px)','추정 되돌아보기 횟수','이해 질문','학생 답변','이해 문항 결과'];
   const rows=[], traces=[];
   for(const s of sessions){
    s.trials.forEach((trial,i)=>{
     const trend=horizontalTrend(trial);
+    const returns=estimateReturns(trial);
     const item=config.items[i];
     const answer=trial.answer==='1'||trial.answer==='2'?item['option'+trial.answer]:null;
     const score=item.question?(answer?(trial.answer===item.correct?'정답':'오답'):'미응답'):'';
-    rows.push([s.participant,...(config.collectName?[s.name]:[]),s.state==='completed'?'완료':'중단',i+1,trial.ms,...trend.ratios.map(v=>v===null?null:Number(v.toFixed(4))),trend.label,trend.total,trend.estimated?'기존 자료 · 근사':'실측 배치',Number(trial.summary.coverage.toFixed(4)),s.error,item.question||'',answer,score]);
-    traces.push({label:s.participant+' · 문장 '+(i+1)+' · '+s.created_at.slice(0,19),trial,item:config.items[i]});
+    rows.push([s.participant,...(config.collectName?[s.name]:[]),s.state==='completed'?'완료':'중단',i+1,trial.ms,...trend.ratios.map(v=>v===null?null:Number(v.toFixed(4))),trend.label,trend.total,trend.estimated?'기존 자료 · 근사':'실측 배치',Number(trial.summary.coverage.toFixed(4)),s.error,returns===null?'판정 불가':returns.length,item.question||'',answer,score]);
+    traces.push({label:s.participant+' · 문장 '+(i+1)+' · '+s.created_at.slice(0,19),trial,returns,item:config.items[i]});
    });
   }
   const percentages=new Set(['왼쪽 비율','중앙 비율','오른쪽 비율','추적률']);
@@ -420,6 +454,10 @@ function drawTrace(trace) {
   previous=t;
  }
  ctx.stroke();
+ ctx.fillStyle='#ba253e';
+ for(const event of trace.returns??[]){
+  ctx.beginPath();ctx.arc(x(event.t),y(event.position),5,0,2*Math.PI);ctx.fill();
+ }
 }
 
 async function startStudent() {
