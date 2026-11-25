@@ -33,6 +33,10 @@ a{color:#174fb4}
 #studentStatus{min-height:54px;margin:0;padding:12px 0}
 #studentTop{min-height:105px}
 #stage{height:clamp(295px,51vh,580px);background:white;border:1px solid var(--line);border-radius:14px;position:relative;display:grid;place-items:center;overflow:hidden}
+#gazeDot{position:absolute;width:16px;height:16px;transform:translate(-50%,-50%);border-radius:50%;background:#ba253e;border:2px solid white;box-shadow:0 0 0 2px #ba253e;pointer-events:none;z-index:3}
+.gazeZone{position:absolute;border:2px dashed #5178bd;border-radius:6px;color:#264777;font-size:13px;font-weight:700;pointer-events:none}
+.gazeZone span{position:absolute;bottom:100%;left:3px}
+.gazeZone.active{border-style:solid;border-color:#147b61;color:#17654f}
 #target{width:42px;height:42px;position:absolute;transform:translate(-50%,-50%);border-radius:50%;padding:0;background:#174fb4;color:white;border:4px solid #c7dbff}
 #reading{display:flex;justify-content:center;align-items:baseline;gap:.34em;white-space:nowrap;max-width:none;position:absolute;line-height:1.35}
 .tableWrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}
@@ -80,7 +84,7 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <h2 id="linkTitle"></h2>
 <label>학생용 검사 링크<input id="studentLink" readonly></label>
 <label>교사용 보고서 링크<input id="reportLink" readonly></label>
-<div class="row"><button id="copyStudent" class="primary">학생 링크 복사</button><button id="copyReport">보고서 링크 복사</button><button id="newSetup">새 검사 설정</button></div>
+<div class="row"><button id="copyStudent" class="primary">학생 링크 복사</button><a id="previewLink" target="_blank" rel="noopener">학생 검사 점검</a><button id="copyReport">보고서 링크 복사</button><button id="newSetup">새 검사 설정</button></div>
 </section>
 <section id="report" class="panel" hidden>
 <h2 id="reportTitle"></h2><p id="reportMeta"></p>
@@ -97,21 +101,22 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <div id="student" hidden>
 <section class="panel" id="intro">
 <h2 id="testTitle">검사를 불러오는 중입니다.</h2>
+<p id="previewNotice" hidden>교사 점검 모드입니다. 읽는 동안 빨간 점으로 추정 시선을 보여 줍니다. 점검 결과는 보고서에 저장되지 않습니다.</p>
 <ul>
 <li>PC의 카메라 정면에 앉고 얼굴과 화면 사이 거리를 약 <strong>60cm</strong>로 유지하세요.</li>
 <li>얼굴이 잘 보이도록 조명을 켜고, 검사 중에는 고개나 몸을 크게 움직이지 마세요.</li>
 <li>브라우저 창의 크기와 확대 비율을 검사 중에 바꾸지 마세요.</li>
-<li><strong>화면과 얼굴 영상을 녹화하지 않으며, 음성도 수집하지 않습니다.</strong> 웹캠 영상은 브라우저에서 시선 위치를 추정하는 데 사용합니다. 서버에는 참가자 정보, 문장별 시간, 추정 시선 좌표가 저장됩니다.</li>
+<li><strong>화면과 얼굴 영상을 녹화하지 않으며, 음성도 수집하지 않습니다.</strong> 웹캠 영상은 브라우저에서 시선 위치를 추정하는 데 사용합니다. <span id="studentStorageNote">서버에는 참가자 정보, 문장별 시간, 추정 시선 좌표가 저장됩니다.</span></li>
 </ul>
 <form id="join" hidden>
 <div class="fields"><label>참가자 번호<input id="code" required maxlength="40" placeholder="예 S001" autocomplete="off"></label><label id="nameLabel" hidden>이름<input id="name" maxlength="60" autocomplete="off"></label></div>
-<label><input id="consent" type="checkbox" required> 안내를 읽었으며 검사 참여와 위 정보 저장에 동의합니다.</label>
+<label><input id="consent" type="checkbox" required> <span id="consentLabel">안내를 읽었으며 검사 참여와 위 정보 저장에 동의합니다.</span></label>
 <button class="primary" id="begin">웹캠 켜고 보정 시작</button>
 </form>
 </section>
 <div id="studentTop"><p id="studentStatus" role="status" aria-live="polite"></p>
 <div class="row"><button id="advance" class="primary" hidden>다음</button><button id="retry" hidden>다시 보정</button><button id="end" hidden>검사 중단</button><button id="resend" class="primary" hidden>결과 저장 다시 시도</button></div></div>
-<div id="stage" hidden><button id="target" hidden aria-label="보정 기준점"></button><div id="reading" hidden><span id="a"></span><span id="middle"></span><span id="b"></span></div></div>
+<div id="stage" hidden><button id="target" hidden aria-label="보정 기준점"></button><div id="reading" hidden><span id="a"></span><span id="middle"></span><span id="b"></span></div><div id="zoneA" class="gazeZone" aria-hidden="true" hidden><span>A</span></div><div id="zoneB" class="gazeZone" aria-hidden="true" hidden><span>B</span></div><div id="gazeDot" aria-hidden="true" hidden></div></div>
 </div>
 </main>
 <script>
@@ -255,6 +260,9 @@ function renderLinks(id,key,title) {
  const link = new URL(studentUrl);
  link.searchParams.set('id',id);
  el('studentLink').value=link.href;
+ const preview = new URL(link);
+ preview.searchParams.set('preview','1');
+ el('previewLink').href=preview.href;
  el('reportLink').value=reportUrl(id,key);
  el('copyStudent').onclick=()=>copy('studentLink');
  el('copyReport').onclick=()=>copy('reportLink');
@@ -354,7 +362,8 @@ function drawTrace(trace) {
 
 async function startStudent() {
  show('student');
- set('viewLabel','학생용 검사');
+ const preview = params.get('preview')==='1';
+ set('viewLabel',preview?'교사용 학생 검사 점검':'학생용 검사');
  const studyId=params.get('id');
  let config;
  try {
@@ -362,8 +371,15 @@ async function startStudent() {
   config=await api('/'+studyId);
  }catch(error){set('testTitle','검사를 열 수 없습니다.');studentStatus(error.message);return}
  set('testTitle',config.title);
- show('nameLabel',config.collectName);
- el('name').required=config.collectName;
+ show('nameLabel',!preview && config.collectName);
+ el('name').required=!preview && config.collectName;
+ if(preview){
+  show('previewNotice');
+  show('studentStorageNote',false);
+  el('code').closest('label').hidden=true;
+  el('code').required=false;
+  set('consentLabel','안내를 읽었으며 웹캠을 사용한 점검에 동의합니다.');
+ }
  show('join');
 
  const stage=el('stage'), target=el('target'), reading=el('reading');
@@ -372,7 +388,7 @@ async function startStudent() {
  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  let tracker, state='intro', generation=0, pointIndex=0, clicks=0, box;
  let samples=[], started=0, trialBounds, validationSamples=null, calibration=null, limitTimer;
- let session, index=0;
+ let session, index=0, gazeTimer;
  const stopTracking=()=>{
   const video=tracker && el(tracker.params.videoElementId);
   if(video?.srcObject){
@@ -389,13 +405,40 @@ async function startStudent() {
   show('advance',false);
   show('retry',false);
   validationSamples=null;
+  clearTimeout(gazeTimer);
+  show('gazeDot',false);
+  for(const id of ['zoneA','zoneB']){
+   show(id,false);
+   el(id).classList.remove('active');
+  }
  };
  function setPoint([x,y],label) {
   target.style.left=x*100+'%';target.style.top=y*100+'%';
   target.textContent=label;show('target');
  }
+ function drawGaze(x,y) {
+  clearTimeout(gazeTimer);
+  const inside = x>=0 && x<=1 && y>=0 && y<=1;
+  if(inside){
+   el('gazeDot').style.left=x*100+'%';
+   el('gazeDot').style.top=y*100+'%';
+  }
+  show('gazeDot',inside);
+  if(state==='trial'){
+   for(const [key,id] of [['a','zoneA'],['b','zoneB']]){
+    const [left,top,right,bottom]=trialBounds[key];
+    el(id).classList.toggle('active',x>=left && x<=right && y>=top && y<=bottom);
+   }
+  }
+  if(inside)gazeTimer=setTimeout(()=>drawGaze(NaN,NaN),300);
+ }
  function gaze(value) {
-  if(!value || !Number.isFinite(value.x) || !Number.isFinite(value.y))return;
+  const visible = preview && (state==='trial' || state==='practice');
+  if(!value || !Number.isFinite(value.x) || !Number.isFinite(value.y)){
+   if(visible)drawGaze(NaN,NaN);
+   return;
+  }
+  if(visible)drawGaze((value.x-box.left)/box.width,(value.y-box.top)/box.height);
   if(validationSamples)validationSamples.push(value);
   if(state!=='trial')return;
   const t=Math.round(performance.now()-started);
@@ -418,7 +461,7 @@ async function startStudent() {
  el('join').onsubmit=async event=>{
   event.preventDefault();
   const code=el('code').value.trim(),name=config.collectName?el('name').value.trim():'';
-  if(!code || (config.collectName && !name)){studentStatus('참가자 번호와 필수 정보를 입력해 주세요.');return}
+  if(!preview && (!code || (config.collectName && !name))){studentStatus('참가자 번호와 필수 정보를 입력해 주세요.');return}
   el('begin').disabled=true;
   studentStatus('시선 추적 모듈을 여는 중입니다. 브라우저에서 카메라 사용을 허용해 주세요.');
   try {
@@ -516,8 +559,15 @@ async function startStudent() {
    norm(rect.right+pad,box.left,box.width),norm(rect.bottom+config.font*.45,box.top,box.height)
   ];
   trialBounds={a:bounds(a),b:bounds(b)};
+  if(preview){
+   for(const [key,id] of [['a','zoneA'],['b','zoneB']]){
+    const [left,top,right,bottom]=trialBounds[key];
+    Object.assign(el(id).style,{left:left*100+'%',top:top*100+'%',width:(right-left)*100+'%',height:(bottom-top)*100+'%'});
+    show(id);
+   }
+  }
   samples=[];
-  studentStatus('문장 '+(index+1)+' / '+config.items.length);
+  studentStatus('문장 '+(index+1)+' / '+config.items.length+(preview?' · A → B → A 순서로 보며 빨간 점과 구간 반응을 확인하세요.':''));
   el('advance').textContent='다 읽었어요';show('advance');
   state='trial';
   started=performance.now();
@@ -549,7 +599,7 @@ async function startStudent() {
  });
  el('retry').onclick=()=>calibrate();
  el('end').onclick=()=>{
-  if(!window.confirm('검사를 중단할까요? 이미 읽은 문장만 저장합니다.'))return;
+  if(!window.confirm(preview?'학생 검사 점검을 중단할까요?':'검사를 중단할까요? 이미 읽은 문장만 저장합니다.'))return;
   if(session.trials.length){submit('partial');return}
   ++generation;clearStage();stopTracking();state='done';
   show('stage',false);show('end',false);
@@ -567,6 +617,11 @@ async function startStudent() {
  async function submit(submissionState) {
   ++generation;state='sending';clearStage();stopTracking();
   show('stage',false);show('end',false);show('resend',false);
+  if(preview){
+   state='done';
+   studentStatus('학생 검사 점검을 마쳤습니다. 결과는 저장되지 않았습니다.');
+   return;
+  }
   session.state=submissionState;
   session.error=calibration.error;
   session.checkPoints=calibration.checkPoints;
