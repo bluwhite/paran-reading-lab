@@ -37,8 +37,8 @@ a{color:#174fb4}
 #target{width:42px;height:42px;position:absolute;transform:translate(-50%,-50%);border-radius:50%;padding:0;background:#174fb4;color:white;border:4px solid #c7dbff}
 #comprehension{width:min(90%,560px);text-align:center}
 #answers{justify-content:center}
-.item details{margin-top:10px}
-.item summary{cursor:pointer;color:var(--blue);font-weight:650}
+.item .questionFields{margin:10px 0 0;padding:12px;border:1px solid var(--line);border-radius:8px}
+.item .questionFields legend{color:var(--blue);font-weight:650}
 #reading{display:flex;justify-content:center;align-items:baseline;gap:.34em;white-space:nowrap;max-width:none;position:absolute;line-height:1.35}
 .tableWrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}
 td,th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -67,8 +67,8 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <section class="panel">
 <h2>새 검사 설정</h2>
 <form id="configForm">
-<label>검사 이름<input id="title" maxlength="80" required value="한국어 문장 읽기 예비검사"></label>
-<label>연습 문장<input id="practice" maxlength="110" required value="민수가 창문을 열었어요."></label>
+<label>검사 이름<input id="title" maxlength="80" required value="영어 읽기 · 한국어 이해 예비검사"></label>
+<label>연습 문장<input id="practice" maxlength="110" required value="Mina opened the window."></label>
 <div class="fields"><label>본검사 문장 수<select id="count"></select></label><label>글자 크기<select id="font"></select></label></div>
 <label><input id="collectName" type="checkbox"> 참가자 이름도 입력받기</label>
 <p class="small">문장을 앞부분, 가운데, 뒤로 나눠 입력하세요. 학생에게는 한 줄로 표시되며, 가로 위치는 문장 전체의 너비를 기준으로 분석합니다.</p>
@@ -196,13 +196,18 @@ function startTeacher() {
  };
  for (let i=1;i<=10;i++) el('count').append(new Option(i+'개',String(i)));
  for (const size of [24,28,32,36,40,44,48,52,56,60,64]) el('font').append(new Option(size+' px',String(size)));
- el('count').value='4';el('font').value='44';
+ el('count').value='1';el('font').value='44';
  const items = [
-  {a:'학생이 어제',middle:'도서관에서',b:'책을 읽었어요.'},
-  {a:'선생님이 아침에',middle:'교실에서',b:'학생을 만났어요.'},
-  {a:'친구가 주말에',middle:'시장에 가서',b:'사과를 샀어요.'},
-  {a:'동생이 저녁에',middle:'거실에서',b:'숙제를 했어요.'}
- ];
+  {
+    "a": "Before class,",
+    "middle": "Mina placed the blue notebook",
+    "b": "beside the window.",
+    "question": "미나는 파란 공책을 어디에 두었습니까?",
+    "option1": "창문 옆",
+    "option2": "책상 아래",
+    "correct": "1"
+  }
+];
  const readItems = () => [...el('items').children].map(box=>Object.fromEntries([...box.querySelectorAll('input, select')].map(input=>[input.name,input.value.trim()])));
  function drawItems() {
   const current=readItems();
@@ -216,9 +221,8 @@ function startTeacher() {
     const input=node('input');input.name=key;input.maxLength=90;input.required=key!=='middle';input.value=item[key]||'';
     const field=node('label',label);field.append(input);parts.append(field);
    }
-   const question=node('details');
-   question.open=Boolean(item.question);
-   question.append(node('summary','이해 질문 추가 (선택)'));
+   const question=node('fieldset');question.className='questionFields';
+   question.append(node('legend','객관식 이해 문항 (필수)'));
    for(const [key,label,limit] of [['question','질문',180],['option1','보기 1',100],['option2','보기 2',100]]){
     const input=node('input');input.name=key;input.maxLength=limit;input.value=item[key]||'';
     const field=node('label',label);field.append(input);question.append(field);
@@ -238,10 +242,9 @@ function startTeacher() {
   const button=event.submitter;
   const config={title:el('title').value.trim(),practice:el('practice').value.trim(),font:Number(el('font').value),collectName:el('collectName').checked,items:readItems()};
   if (config.items.some(item=>[item.a,item.middle,item.b].join('').length>135)) {notice('문장 하나는 135자 이하로 입력해 주세요.');return}
-  const incomplete=config.items.findIndex(item=>[item.question,item.option1,item.option2,item.correct].some(Boolean) &&
-   (!item.question || !item.option1 || !item.option2 || item.option1===item.option2 || !['1','2'].includes(item.correct)));
+  const incomplete=config.items.findIndex(item=>
+   !item.question || !item.option1 || !item.option2 || item.option1===item.option2 || !['1','2'].includes(item.correct));
   if(incomplete!==-1){
-   el('items').children[incomplete].querySelector('details').open=true;
    notice('문장 '+(incomplete+1)+'의 이해 질문, 서로 다른 보기 두 개와 정답을 모두 입력하세요.');
    el('items').children[incomplete].querySelector('[name="question"]').focus();
    return;
