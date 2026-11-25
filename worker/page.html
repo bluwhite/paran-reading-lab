@@ -50,7 +50,13 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <div id="teacher" hidden>
 <p id="notice" role="status" class="noPrint"></p>
 <section id="unlockPanel" class="panel noPrint" hidden>
-<h2>교사용 접근</h2><form id="unlock"><label>교사용 접근 키<input id="adminKey" type="password" autocomplete="off" required></label><button class="primary">설정 열기</button></form>
+<h2>교사용 접근</h2>
+<p id="keyHint" class="small">처음 받은 교사용 검사 설정 링크를 열거나, 링크의 접근 키를 붙여 넣으세요.</p>
+<form id="unlock">
+<label>교사용 접근 키<input id="adminKey" type="password" autocomplete="off" aria-describedby="keyHint keyError" required></label>
+<p id="keyError" role="alert" hidden></p>
+<button class="primary">설정 열기</button>
+</form>
 </section>
 <div id="setup" class="columns noPrint" hidden>
 <section class="panel">
@@ -163,7 +169,24 @@ function startTeacher() {
   show('setup');
   displaySaved();
  };
- el('unlock').onsubmit = event => {event.preventDefault();admin=el('adminKey').value.trim();openSetup()};
+ const keyField = el('adminKey');
+ keyField.oninput = () => {
+  keyField.removeAttribute('aria-invalid');
+  show('keyError',false);
+ };
+ el('unlock').onsubmit = event => {
+  event.preventDefault();
+  const entered = keyField.value.trim().toLowerCase();
+  if (!keyPattern.test(entered)) {
+   set('keyError','접근 키는 숫자와 a–f로 이루어진 64자리 문자열입니다. 처음 받은 교사용 검사 설정 링크를 확인해 주세요.');
+   show('keyError');
+   keyField.setAttribute('aria-invalid','true');
+   keyField.focus();
+   return;
+  }
+  admin = entered;
+  openSetup();
+ };
  for (let i=1;i<=10;i++) el('count').append(new Option(i+'개',String(i)));
  for (const size of [24,28,32,36,40,44,48,52,56,60,64]) el('font').append(new Option(size+' px',String(size)));
  el('count').value='4';el('font').value='44';
