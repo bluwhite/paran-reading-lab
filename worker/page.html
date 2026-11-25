@@ -35,6 +35,10 @@ a{color:#174fb4}
 #stage{height:clamp(295px,51vh,580px);background:white;border:1px solid var(--line);border-radius:14px;position:relative;display:grid;place-items:center;overflow:hidden}
 #gazeDot{position:absolute;width:16px;height:16px;transform:translate(-50%,-50%);border-radius:50%;background:#ba253e;border:2px solid white;box-shadow:0 0 0 2px #ba253e;pointer-events:none;z-index:3}
 #target{width:42px;height:42px;position:absolute;transform:translate(-50%,-50%);border-radius:50%;padding:0;background:#174fb4;color:white;border:4px solid #c7dbff}
+#comprehension{width:min(90%,560px);text-align:center}
+#answers{justify-content:center}
+.item details{margin-top:10px}
+.item summary{cursor:pointer;color:var(--blue);font-weight:650}
 #reading{display:flex;justify-content:center;align-items:baseline;gap:.34em;white-space:nowrap;max-width:none;position:absolute;line-height:1.35}
 .tableWrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}
 td,th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -114,7 +118,7 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 </section>
 <div id="studentTop"><p id="studentStatus" role="status" aria-live="polite"></p>
 <div class="row"><button id="advance" class="primary" hidden>다음</button><button id="retry" hidden>다시 보정</button><button id="end" hidden>검사 중단</button><button id="resend" class="primary" hidden>결과 저장 다시 시도</button></div></div>
-<div id="stage" hidden><button id="target" hidden aria-label="보정 기준점"></button><div id="reading" hidden><span id="a"></span><span id="middle"></span><span id="b"></span></div><div id="gazeDot" aria-hidden="true" hidden></div></div>
+<div id="stage" hidden><button id="target" hidden aria-label="보정 기준점"></button><div id="reading" hidden><span id="a"></span><span id="middle"></span><span id="b"></span></div><div id="gazeDot" aria-hidden="true" hidden></div><section id="comprehension" aria-labelledby="questionText" hidden><h2 id="questionText" tabindex="-1"></h2><div class="row" id="answers"></div></section></div>
 </div>
 </main>
 <script>
@@ -199,7 +203,7 @@ function startTeacher() {
   {a:'친구가 주말에',middle:'시장에 가서',b:'사과를 샀어요.'},
   {a:'동생이 저녁에',middle:'거실에서',b:'숙제를 했어요.'}
  ];
- const readItems = () => [...el('items').children].map(box=>Object.fromEntries([...box.querySelectorAll('input')].map(input=>[input.name,input.value.trim()])));
+ const readItems = () => [...el('items').children].map(box=>Object.fromEntries([...box.querySelectorAll('input, select')].map(input=>[input.name,input.value.trim()])));
  function drawItems() {
   const current=readItems();
   current.forEach((item,i)=>{items[i]=item});
@@ -212,7 +216,18 @@ function startTeacher() {
     const input=node('input');input.name=key;input.maxLength=90;input.required=key!=='middle';input.value=item[key]||'';
     const field=node('label',label);field.append(input);parts.append(field);
    }
-   box.append(parts);children.push(box);
+   const question=node('details');
+   question.open=Boolean(item.question);
+   question.append(node('summary','이해 질문 추가 (선택)'));
+   for(const [key,label,limit] of [['question','질문',180],['option1','보기 1',100],['option2','보기 2',100]]){
+    const input=node('input');input.name=key;input.maxLength=limit;input.value=item[key]||'';
+    const field=node('label',label);field.append(input);question.append(field);
+   }
+   const correct=node('select');correct.name='correct';
+   correct.append(new Option('선택하세요',''),new Option('보기 1','1'),new Option('보기 2','2'));
+   correct.value=item.correct||'';
+   const answer=node('label','정답');answer.append(correct);question.append(answer);
+   box.append(parts,question);children.push(box);
   }
   el('items').replaceChildren(...children);
  }
@@ -222,7 +237,15 @@ function startTeacher() {
   event.preventDefault();
   const button=event.submitter;
   const config={title:el('title').value.trim(),practice:el('practice').value.trim(),font:Number(el('font').value),collectName:el('collectName').checked,items:readItems()};
-  if (config.items.some(item=>Object.values(item).join('').length>135)) {notice('문장 하나는 135자 이하로 입력해 주세요.');return}
+  if (config.items.some(item=>[item.a,item.middle,item.b].join('').length>135)) {notice('문장 하나는 135자 이하로 입력해 주세요.');return}
+  const incomplete=config.items.findIndex(item=>[item.question,item.option1,item.option2,item.correct].some(Boolean) &&
+   (!item.question || !item.option1 || !item.option2 || item.option1===item.option2 || !['1','2'].includes(item.correct)));
+  if(incomplete!==-1){
+   el('items').children[incomplete].querySelector('details').open=true;
+   notice('문장 '+(incomplete+1)+'의 이해 질문, 서로 다른 보기 두 개와 정답을 모두 입력하세요.');
+   el('items').children[incomplete].querySelector('[name="question"]').focus();
+   return;
+  }
   button.disabled=true;notice('검사를 저장하고 있습니다.');
   const key=hexKey();
   try {
@@ -340,12 +363,15 @@ async function loadReport(id,key) {
    return [i+1,full(item),trials.length,trends.length,...ratios.map(pct),ms(mean)];
   });
   table('aggregate',['문장','내용','제출','비율 분석 가능','평균 왼쪽','평균 중앙','평균 오른쪽','평균 읽기(ms)'],aggregate);
-  const labels=['참가자 번호',...(config.collectName?['이름']:[]),'상태','문장','읽기(ms)','왼쪽 비율','중앙 비율','오른쪽 비율','가장 많이 관측된 구간','가로 표본 수','문장 범위','추적률','보정 오차(px)'];
+  const labels=['참가자 번호',...(config.collectName?['이름']:[]),'상태','문장','읽기(ms)','왼쪽 비율','중앙 비율','오른쪽 비율','가장 많이 관측된 구간','가로 표본 수','문장 범위','추적률','보정 오차(px)','이해 질문','학생 답변','이해 문항 결과'];
   const rows=[], traces=[];
   for(const s of sessions){
    s.trials.forEach((trial,i)=>{
     const trend=horizontalTrend(trial);
-    rows.push([s.participant,...(config.collectName?[s.name]:[]),s.state==='completed'?'완료':'중단',i+1,trial.ms,...trend.ratios.map(v=>v===null?null:Number(v.toFixed(4))),trend.label,trend.total,trend.estimated?'기존 자료 · 근사':'실측 배치',Number(trial.summary.coverage.toFixed(4)),s.error]);
+    const item=config.items[i];
+    const answer=trial.answer==='1'||trial.answer==='2'?item['option'+trial.answer]:null;
+    const score=item.question?(answer?(trial.answer===item.correct?'정답':'오답'):'미응답'):'';
+    rows.push([s.participant,...(config.collectName?[s.name]:[]),s.state==='completed'?'완료':'중단',i+1,trial.ms,...trend.ratios.map(v=>v===null?null:Number(v.toFixed(4))),trend.label,trend.total,trend.estimated?'기존 자료 · 근사':'실측 배치',Number(trial.summary.coverage.toFixed(4)),s.error,item.question||'',answer,score]);
     traces.push({label:s.participant+' · 문장 '+(i+1)+' · '+s.created_at.slice(0,19),trial,item:config.items[i]});
    });
   }
@@ -435,6 +461,7 @@ async function startStudent() {
   clearTimeout(limitTimer);
   show('target',false);
   show('reading',false);
+  show('comprehension',false);
   show('advance',false);
   show('retry',false);
   validationSamples=null;
@@ -569,6 +596,7 @@ async function startStudent() {
  function nextTrial() {
   clearStage();
   const item=config.items[index];
+  box=stage.getBoundingClientRect();
   if(!display(item)){
    clearStage();state='recheck';
    studentStatus('문장이 화면 한 줄에 들어가지 않습니다. 더 넓은 PC 화면에서 다시 시작하거나 교사에게 알려 주세요.');
@@ -596,7 +624,32 @@ async function startStudent() {
   const elapsed=Math.min(60000,Math.round(performance.now()-started));
   if(elapsed<250)return;
   clearTimeout(limitTimer);
-  session.trials.push({ms:elapsed,samples,...trialBounds});
+  const trial={ms:elapsed,samples,...trialBounds};
+  session.trials.push(trial);
+  const item=config.items[index];
+  if(item.question){
+   state='question';
+   clearStage();
+   studentStatus('방금 읽은 문장의 내용을 바탕으로 답을 고르세요.');
+   set('questionText',item.question);
+   const options=['1','2'].map(choice=>{
+    const button=node('button',item['option'+choice]);
+    button.type='button';
+    button.onclick=()=>{
+     if(state!=='question')return;
+     trial.answer=choice;
+     moveToNextTrial();
+    };
+    return button;
+   });
+   el('answers').replaceChildren(...options);
+   show('comprehension');
+   el('questionText').focus();
+   return;
+  }
+  moveToNextTrial();
+ }
+ function moveToNextTrial() {
   ++index;
   if(index===config.items.length){submit('completed');return}
   nextTrial();
