@@ -112,6 +112,11 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 const el = id => document.getElementById(id);
 const show = (id,visible=true) => {el(id).hidden=!visible};
 const set = (id,text) => {el(id).textContent=text};
+const pagesBuild = document.documentElement.hasAttribute('data-static-pages');
+const studentMode = pagesBuild ? /\/student\/(?:index\.html)?$/.test(location.pathname) : location.pathname === '/student';
+const rootUrl = new URL(pagesBuild && studentMode ? '../' : './', location.href);
+const studentUrl = new URL(pagesBuild ? 'student/' : 'student', rootUrl);
+const apiOrigin = document.documentElement.dataset.apiOrigin || location.origin;
 const params = new URLSearchParams(location.search);
 const fragment = new URLSearchParams(location.hash.slice(1));
 const localGet = (key,fallback) => {
@@ -120,7 +125,12 @@ const localGet = (key,fallback) => {
 const localPut = (key,value) => { try {localStorage.setItem(key,JSON.stringify(value))} catch {} };
 const hexKey = () => Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');
 const api = async (path,options={}) => {
- const response = await fetch('/api/studies'+path,options);
+ let response;
+ try {
+  response = await fetch(new URL('/api/studies'+path,apiOrigin),options);
+ } catch {
+  throw new Error('검사 저장 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+ }
  const data = await response.json();
  if (!response.ok) throw new Error(data.error || '요청에 실패했습니다.');
  return data;
@@ -132,7 +142,6 @@ const ms = value => value==null?'—':Math.round(value).toLocaleString('ko-KR');
 const notice = text => set('notice',text);
 const studentStatus = text => set('studentStatus',text);
 const keyPattern = /^[a-f0-9]{64}$/;
-const studentMode = location.pathname==='/student';
 if (studentMode) startStudent(); else startTeacher();
 
 function startTeacher() {
@@ -205,20 +214,28 @@ function startTeacher() {
 function displaySaved() {
  const studies=localGet('paran-studies',[]);
  const entries=studies.map(({id,key,title})=>{
-  const link=node('a',title);link.href='/?report='+id+'#key='+key;
+  const link=node('a',title);link.href=reportUrl(id,key);
   const p=node('p');p.append(link);return p;
  });
  el('saved').replaceChildren(...(entries.length?entries:[node('p','이 브라우저에 저장된 검사가 없습니다.')]));
 }
 
+function reportUrl(id,key) {
+ const url = new URL(rootUrl);
+ url.searchParams.set('report',id);
+ url.hash = new URLSearchParams({key}).toString();
+ return url.href;
+}
 function renderLinks(id,key,title) {
  show('links');
  set('linkTitle',title);
- el('studentLink').value=location.origin+'/student?id='+id;
- el('reportLink').value=location.origin+'/?report='+id+'#key='+key;
+ const link = new URL(studentUrl);
+ link.searchParams.set('id',id);
+ el('studentLink').value=link.href;
+ el('reportLink').value=reportUrl(id,key);
  el('copyStudent').onclick=()=>copy('studentLink');
  el('copyReport').onclick=()=>copy('reportLink');
- el('newSetup').onclick=()=>location.assign('/');
+ el('newSetup').onclick=()=>location.assign(rootUrl);
 }
 
 async function copy(id) {

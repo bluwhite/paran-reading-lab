@@ -102,54 +102,76 @@ function summarize(trial) {
   return {ms:trial.ms,first,totals,coverage,returns:reason ? null : returns,reason};
 }
 
+async function handleRequest(request,env) {
+  const url = new URL(request.url);
+  if (request.method === 'GET' && ['/', '/student'].includes(url.pathname)) {
+    return new Response(page,{headers:{...headers,'content-type':'text/html; charset=utf-8'}});
+  }
+  if (!url.pathname.startsWith('/api/')) return message('페이지를 찾을 수 없습니다.',404);
+  if (!env.DB) return message('검사 저장소에 연결할 수 없습니다.',503);
+  try {
+    if (url.pathname === '/api/studies' && request.method === 'POST') {
+      const {key,admin,config} = await body(request) ?? {};
+      if (!secretPattern.test(admin) || (await hash(admin)) !== env.READING_LAB_ADMIN_SHA256 || !secretPattern.test(key)) {
+        return message('교사용 접근 키가 필요합니다.',403);
+      }
+      if (!validConfig(config)) return message('검사 이름과 문장 설정을 확인하세요.');
+      const id = crypto.randomUUID();
+      await env.DB.prepare('INSERT INTO studies VALUES (?,?,?,?,?)').bind(id,config.title,JSON.stringify(config),await hash(key),new Date().toISOString()).run();
+      return json({id},201);
+    }
+    const [,id,action] = /^\/api\/studies\/([^/]+)(?:\/(submit|report))?$/.exec(url.pathname) ?? [];
+    if (!uuid.test(id)) return message('검사 링크를 확인하세요.',404);
+    const row = await env.DB.prepare('SELECT config,secret_hash FROM studies WHERE id=?').bind(id).first();
+    if (!row) return message('검사를 찾을 수 없습니다.',404);
+    const config = JSON.parse(row.config);
+    if (!action && request.method === 'GET') return json(config);
+    if (action === 'submit' && request.method === 'POST') {
+      const session = await body(request);
+      if (!validSession(session,config)) return message('참가자 정보 또는 검사 결과 형식을 확인하세요.');
+      const {id:sessionId,code,name,state,error,checkPoints,trials} = session;
+      const payload = {state,error,checkPoints,trials:trials.map(trial => ({...trial,summary:summarize(trial)}))};
+      await env.DB.prepare(
+        'INSERT INTO sessions VALUES (?,?,?,?,?,?) ON CONFLICT(study_id,id) DO NOTHING'
+      ).bind(id,sessionId,code.trim(),name.trim(),JSON.stringify(payload),new Date().toISOString()).run();
+      return json({saved:true});
+    }
+    if (action === 'report' && request.method === 'GET') {
+      const key = request.headers.get('authorization')?.replace(/^Bearer /,'');
+      if (!secretPattern.test(key) || await hash(key) !== row.secret_hash) return message('보고서 접근 키를 확인하세요.',403);
+      const {results} = await env.DB.prepare(
+        'SELECT id,participant,name,payload,created_at FROM sessions WHERE study_id=? ORDER BY created_at'
+      ).bind(id).all();
+      return json({config,sessions:results.map(({payload,...session}) => ({...session,...JSON.parse(payload)}))});
+    }
+    return message('요청을 처리할 수 없습니다.',405);
+  } catch (error) {
+    if (error instanceof TypeError || error instanceof SyntaxError) return message(error.message);
+    console.error('Reading lab storage request failed',error);
+    return message('저장소 요청에 실패했습니다. 잠시 뒤 다시 시도하세요.',500);
+  }
+}
+
+const pagesOrigin = 'https://bluwhite.github.io';
+
 export default {
   async fetch(request,env) {
-    const url = new URL(request.url);
-    if (request.method === 'GET' && ['/', '/student'].includes(url.pathname)) {
-      return new Response(page,{headers:{...headers,'content-type':'text/html; charset=utf-8'}});
+    const path = new URL(request.url).pathname;
+    if (!path.startsWith('/api/studies')) return handleRequest(request,env);
+
+    const origin = request.headers.get('origin');
+    const allowed = origin === pagesOrigin;
+    if (request.method === 'OPTIONS' && !allowed) return message('허용되지 않은 요청입니다.',403);
+
+    const result = request.method === 'OPTIONS' ? new Response(null,{status:204}) : await handleRequest(request,env);
+    const response = new Response(result.body,result);
+    response.headers.append('Vary','Origin');
+    if (allowed) {
+      response.headers.set('Access-Control-Allow-Origin',pagesOrigin);
+      response.headers.set('Access-Control-Allow-Methods','GET, POST, OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers','Content-Type, Authorization');
+      response.headers.set('Access-Control-Max-Age','600');
     }
-    if (!url.pathname.startsWith('/api/')) return message('페이지를 찾을 수 없습니다.',404);
-    if (!env.DB) return message('검사 저장소에 연결할 수 없습니다.',503);
-    try {
-      if (url.pathname === '/api/studies' && request.method === 'POST') {
-        const {key,admin,config} = await body(request) ?? {};
-        if (!secretPattern.test(admin) || (await hash(admin)) !== env.READING_LAB_ADMIN_SHA256 || !secretPattern.test(key)) {
-          return message('교사용 접근 키가 필요합니다.',403);
-        }
-        if (!validConfig(config)) return message('검사 이름과 문장 설정을 확인하세요.');
-        const id = crypto.randomUUID();
-        await env.DB.prepare('INSERT INTO studies VALUES (?,?,?,?,?)').bind(id,config.title,JSON.stringify(config),await hash(key),new Date().toISOString()).run();
-        return json({id},201);
-      }
-      const [,id,action] = /^\/api\/studies\/([^/]+)(?:\/(submit|report))?$/.exec(url.pathname) ?? [];
-      if (!uuid.test(id)) return message('검사 링크를 확인하세요.',404);
-      const row = await env.DB.prepare('SELECT config,secret_hash FROM studies WHERE id=?').bind(id).first();
-      if (!row) return message('검사를 찾을 수 없습니다.',404);
-      const config = JSON.parse(row.config);
-      if (!action && request.method === 'GET') return json(config);
-      if (action === 'submit' && request.method === 'POST') {
-        const session = await body(request);
-        if (!validSession(session,config)) return message('참가자 정보 또는 검사 결과 형식을 확인하세요.');
-        const {id:sessionId,code,name,state,error,checkPoints,trials} = session;
-        const payload = {state,error,checkPoints,trials:trials.map(trial => ({...trial,summary:summarize(trial)}))};
-        await env.DB.prepare(
-          'INSERT INTO sessions VALUES (?,?,?,?,?,?) ON CONFLICT(study_id,id) DO NOTHING'
-        ).bind(id,sessionId,code.trim(),name.trim(),JSON.stringify(payload),new Date().toISOString()).run();
-        return json({saved:true});
-      }
-      if (action === 'report' && request.method === 'GET') {
-        const key = request.headers.get('authorization')?.replace(/^Bearer /,'');
-        if (!secretPattern.test(key) || await hash(key) !== row.secret_hash) return message('보고서 접근 키를 확인하세요.',403);
-        const {results} = await env.DB.prepare(
-          'SELECT id,participant,name,payload,created_at FROM sessions WHERE study_id=? ORDER BY created_at'
-        ).bind(id).all();
-        return json({config,sessions:results.map(({payload,...session}) => ({...session,...JSON.parse(payload)}))});
-      }
-      return message('요청을 처리할 수 없습니다.',405);
-    } catch (error) {
-      if (error instanceof TypeError || error instanceof SyntaxError) return message(error.message);
-      console.error('Reading lab storage request failed',error);
-      return message('저장소 요청에 실패했습니다. 잠시 뒤 다시 시도하세요.',500);
-    }
+    return response;
   }
 };

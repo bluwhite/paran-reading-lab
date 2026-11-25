@@ -18,3 +18,9 @@ node --input-type=module --check < dist/server/index.js
 교사용 접근 키는 32바이트 난수를 64자리 소문자 16진수로 표현한 값입니다. 키 원문은 교사가 보관하고, 원문 문자열의 SHA-256 해시를 Worker 환경 변수 `READING_LAB_ADMIN_SHA256`에 설정합니다. 교사는 첫 화면에서 키 원문을 입력해 검사를 생성합니다. 검사마다 학생용 링크와 교사용 보고서 링크가 각각 발급됩니다. 교사용 링크는 교사만 보관합니다.
 
 이 저장소에는 운영 사이트의 접근 키, 데이터베이스 및 검사 결과가 포함되어 있지 않습니다.
+
+## GitHub Pages 화면
+
+GitHub Pages의 배포 소스를 **GitHub Actions**로 설정하면 main에 변경을 올릴 때 교사·학생 화면을 배포합니다. `node build-pages.mjs`로 같은 정적 결과물을 만들 수 있습니다.
+
+화면은 기본적으로 기존 운영 사이트의 API를 호출합니다. API 서버에는 이 저장소의 GitHub Pages 접근 허용 코드가 배포되어 있어야 합니다. 추후 다른 서버로 옮길 때는 저장소 Actions 변수 `READING_LAB_API_ORIGIN`에 새 HTTPS 서버 주소를 설정하고 다시 배포합니다. 검사와 결과는 연결한 API 서버의 데이터베이스에 보관합니다.
