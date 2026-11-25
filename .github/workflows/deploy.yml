@@ -1,0 +1,68 @@
+name: Build and deploy reading lab
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reading-lab-deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node build.mjs
+      - run: node --input-type=module --check < dist/server/index.js
+
+  deploy:
+    if: ${{ vars.CLOUDFLARE_ACCOUNT_ID != '' && vars.READING_LAB_D1_ID != '' }}
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      READING_LAB_D1_ID: ${{ vars.READING_LAB_D1_ID }}
+      READING_LAB_ADMIN_SHA256: ${{ secrets.READING_LAB_ADMIN_SHA256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node build.mjs
+      - name: Configure Cloudflare Worker
+        run: |
+          node --input-type=module <<'JS'
+          import { writeFileSync } from 'node:fs';
+          const env = process.env;
+          if (!env.CLOUDFLARE_API_TOKEN || !/^[a-f0-9]{64}$/.test(env.READING_LAB_ADMIN_SHA256 ?? '')) {
+            throw new Error('Configure CLOUDFLARE_API_TOKEN and READING_LAB_ADMIN_SHA256 in GitHub Actions secrets.');
+          }
+          if (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(env.READING_LAB_D1_ID)) {
+            throw new Error('READING_LAB_D1_ID must be the D1 database UUID.');
+          }
+          writeFileSync('wrangler.deploy.json', JSON.stringify({
+            name: 'paran-reading-lab',
+            main: 'dist/server/index.js',
+            compatibility_date: '2025-04-01',
+            workers_dev: true,
+            vars: { READING_LAB_ADMIN_SHA256: env.READING_LAB_ADMIN_SHA256 },
+            d1_databases: [{
+              binding: 'DB',
+              database_id: env.READING_LAB_D1_ID,
+              migrations_dir: 'drizzle'
+            }]
+          }));
+          JS
+      - name: Apply database migrations
+        run: npx --yes wrangler@4 d1 migrations apply DB --remote --config wrangler.deploy.json
+      - name: Deploy Worker
+        run: npx --yes wrangler@4 deploy --config wrangler.deploy.json
