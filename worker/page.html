@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>파란 읽기연구실</title>
+<style>
+:root{color-scheme:light;--blue:#1d52bd;--ink:#142342;--line:#d2dcef;--muted:#4b5c7b;--surface:#fff;--bg:#edf2fa}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.55 system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+main{width:min(1180px,100% - 40px);margin:30px auto 70px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);margin-bottom:22px;padding-bottom:12px}
+h1{font-size:clamp(26px,4vw,40px);margin:0;letter-spacing:-.06em}
+h2,h3{line-height:1.25;margin:0 0 12px}p{margin:8px 0 16px}
+section.panel{padding:24px;margin-bottom:18px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.columns{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(245px,.7fr);gap:18px;align-items:start}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;color:var(--muted);font-weight:600;margin-bottom:10px}
+input,select,button{font:inherit;border:1px solid #adbdde;border-radius:8px;padding:8px 12px;color:var(--ink);background:white}
+input:not([type=checkbox]),select{width:100%;margin-top:5px}
+input[type=checkbox]{accent-color:var(--blue)}
+button{font-weight:650;cursor:pointer}
+button.primary{background:var(--blue);color:white;border-color:var(--blue)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid #dfa02c;outline-offset:2px}
+a{color:#174fb4}
+.item{border:1px solid var(--line);border-radius:10px;padding:12px;margin:12px 0}
+.item .row{justify-content:space-between}
+.item .parts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.small{font-size:14px;color:var(--muted)}
+#notice,#studentStatus{color:#243d70;white-space:pre-line}
+#studentStatus{min-height:54px;margin:0;padding:12px 0}
+#studentTop{min-height:105px}
+#stage{height:clamp(295px,51vh,580px);background:white;border:1px solid var(--line);border-radius:14px;position:relative;display:grid;place-items:center;overflow:hidden}
+#target{width:42px;height:42px;position:absolute;transform:translate(-50%,-50%);border-radius:50%;padding:0;background:#174fb4;color:white;border:4px solid #c7dbff}
+#reading{display:flex;justify-content:center;align-items:baseline;gap:.34em;white-space:nowrap;max-width:none;position:absolute;line-height:1.35}
+.tableWrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:#edf3ff}
+canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
+[hidden]{display:none!important}
+@media(max-width:760px){.columns,.fields{grid-template-columns:1fr}main{width:calc(100% - 24px)}section.panel{padding:16px}header{align-items:start;flex-direction:column;gap:0}}
+@media print{body{background:white}main{margin:0;width:100%}.noPrint,#notice{display:none!important}section.panel{padding:8px;border:0;margin:0 0 16px}.tableWrap{overflow:visible}td,th{white-space:normal}h2,h3{break-after:avoid}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>파란 읽기연구실</h1><span id="viewLabel" class="small"></span></header>
+<div id="teacher" hidden>
+<p id="notice" role="status" class="noPrint"></p>
+<section id="unlockPanel" class="panel noPrint" hidden>
+<h2>교사용 접근</h2><form id="unlock"><label>교사용 접근 키<input id="adminKey" type="password" autocomplete="off" required></label><button class="primary">설정 열기</button></form>
+</section>
+<div id="setup" class="columns noPrint" hidden>
+<section class="panel">
+<h2>새 검사 설정</h2>
+<form id="configForm">
+<label>검사 이름<input id="title" maxlength="80" required value="한국어 문장 읽기 예비검사"></label>
+<label>연습 문장<input id="practice" maxlength="110" required value="민수가 창문을 열었어요."></label>
+<div class="fields"><label>본검사 문장 수<select id="count"></select></label><label>글자 크기<select id="font"></select></label></div>
+<label><input id="collectName" type="checkbox"> 참가자 이름도 입력받기</label>
+<p class="small">문장을 앞 구간 A, 가운데, 뒤 구간 B로 나눠 입력하세요. 학생에게는 한 줄로 표시됩니다. 가운데 부분은 비워도 됩니다.</p>
+<div id="items"></div>
+<button class="primary" type="submit">검사 만들기</button>
+</form>
+</section>
+<aside><section class="panel">
+<h2>저장한 검사</h2><div id="saved"></div>
+<p class="small">학생에게는 검사 링크만 보내세요. 교사용 보고서 링크는 따로 보관하세요.</p>
+</section></aside>
+</div>
+<section id="links" class="panel noPrint" hidden>
+<h2 id="linkTitle"></h2>
+<label>학생용 검사 링크<input id="studentLink" readonly></label>
+<label>교사용 보고서 링크<input id="reportLink" readonly></label>
+<div class="row"><button id="copyStudent" class="primary">학생 링크 복사</button><button id="copyReport">보고서 링크 복사</button><button id="newSetup">새 검사 설정</button></div>
+</section>
+<section id="report" class="panel" hidden>
+<h2 id="reportTitle"></h2><p id="reportMeta"></p>
+<div class="row noPrint"><button id="refresh">새로고침</button><button id="print">보고서 인쇄 / PDF</button><button id="csv">CSV 다운로드</button></div>
+<h3 style="margin-top:24px">문장별 요약</h3><div id="aggregate" class="tableWrap"></div>
+<h3 style="margin-top:24px">참가자별 기록</h3><div id="detail" class="tableWrap"></div>
+</section>
+<section id="plotPanel" class="panel" hidden>
+<h2>문장별 시선 이동</h2><label class="noPrint">참가자와 문장<select id="plotSelect"></select></label><p id="plotLabel"></p>
+<canvas id="chart" width="900" height="300" role="img" aria-label="시간에 따른 시선 가로 위치"></canvas>
+<p class="small">가로축은 읽기 시간, 세로축은 화면 왼쪽에서 오른쪽까지의 상대 위치입니다. 띠는 A·B 분석 구간의 가로 범위입니다.</p>
+</section>
+</div>
+<div id="student" hidden>
+<section class="panel" id="intro">
+<h2 id="testTitle">검사를 불러오는 중입니다.</h2>
+<ul>
+<li>PC의 카메라 정면에 앉고 얼굴과 화면 사이 거리를 약 <strong>60cm</strong>로 유지하세요.</li>
+<li>얼굴이 잘 보이도록 조명을 켜고, 검사 중에는 고개나 몸을 크게 움직이지 마세요.</li>
+<li>브라우저 창의 크기와 확대 비율을 검사 중에 바꾸지 마세요.</li>
+<li><strong>화면과 얼굴 영상을 녹화하지 않으며, 음성도 수집하지 않습니다.</strong> 웹캠 영상은 브라우저에서 시선 위치를 추정하는 데 사용합니다. 서버에는 참가자 정보, 문장별 시간, 추정 시선 좌표가 저장됩니다.</li>
+</ul>
+<form id="join" hidden>
+<div class="fields"><label>참가자 번호<input id="code" required maxlength="40" placeholder="예 S001" autocomplete="off"></label><label id="nameLabel" hidden>이름<input id="name" maxlength="60" autocomplete="off"></label></div>
+<label><input id="consent" type="checkbox" required> 안내를 읽었으며 검사 참여와 위 정보 저장에 동의합니다.</label>
+<button class="primary" id="begin">웹캠 켜고 보정 시작</button>
+</form>
+</section>
+<div id="studentTop"><p id="studentStatus" role="status" aria-live="polite"></p>
+<div class="row"><button id="advance" class="primary" hidden>다음</button><button id="retry" hidden>다시 보정</button><button id="end" hidden>검사 중단</button><button id="resend" class="primary" hidden>결과 저장 다시 시도</button></div></div>
+<div id="stage" hidden><button id="target" hidden aria-label="보정 기준점"></button><div id="reading" hidden><span id="a"></span><span id="middle"></span><span id="b"></span></div></div>
+</div>
+</main>
+<script>
+const el = id => document.getElementById(id);
+const show = (id,visible=true) => {el(id).hidden=!visible};
+const set = (id,text) => {el(id).textContent=text};
+const params = new URLSearchParams(location.search);
+const fragment = new URLSearchParams(location.hash.slice(1));
+const localGet = (key,fallback) => {
+ try { return JSON.parse(localStorage.getItem(key)) ?? fallback } catch { return fallback }
+};
+const localPut = (key,value) => { try {localStorage.setItem(key,JSON.stringify(value))} catch {} };
+const hexKey = () => Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');
+const api = async (path,options={}) => {
+ const response = await fetch('/api/studies'+path,options);
+ const data = await response.json();
+ if (!response.ok) throw new Error(data.error || '요청에 실패했습니다.');
+ return data;
+};
+const post = data => ({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+const node = (tag,value) => {const element=document.createElement(tag);if(value!=null)element.textContent=value;return element};
+const pct = value => value==null?'—':(100*value).toFixed(1)+'%';
+const ms = value => value==null?'—':Math.round(value).toLocaleString('ko-KR');
+const notice = text => set('notice',text);
+const studentStatus = text => set('studentStatus',text);
+const keyPattern = /^[a-f0-9]{64}$/;
+const studentMode = location.pathname==='/student';
+if (studentMode) startStudent(); else startTeacher();
+
+function startTeacher() {
+ show('teacher');
+ set('viewLabel','교사용');
+ let admin = fragment.get('access') || localGet('paran-admin','');
+ if (fragment.has('access')) history.replaceState(null,'',location.pathname+location.search);
+ const reportId = params.get('report');
+ const reportKey = fragment.get('key');
+ if (reportId && keyPattern.test(reportKey)) {
+  renderLinks(reportId,reportKey,'검사 링크');
+  loadReport(reportId,reportKey);
+  return;
+ }
+ const openSetup = () => {
+  if (!keyPattern.test(admin)) {show('unlockPanel');return}
+  localPut('paran-admin',admin);
+  show('unlockPanel',false);
+  show('setup');
+  displaySaved();
+ };
+ el('unlock').onsubmit = event => {event.preventDefault();admin=el('adminKey').value.trim();openSetup()};
+ for (let i=1;i<=10;i++) el('count').append(new Option(i+'개',String(i)));
+ for (const size of [24,28,32,36,40,44,48,52,56,60,64]) el('font').append(new Option(size+' px',String(size)));
+ el('count').value='4';el('font').value='44';
+ const items = [
+  {a:'학생이 어제',middle:'도서관에서',b:'책을 읽었어요.'},
+  {a:'선생님이 아침에',middle:'교실에서',b:'학생을 만났어요.'},
+  {a:'친구가 주말에',middle:'시장에 가서',b:'사과를 샀어요.'},
+  {a:'동생이 저녁에',middle:'거실에서',b:'숙제를 했어요.'}
+ ];
+ const readItems = () => [...el('items').children].map(box=>Object.fromEntries([...box.querySelectorAll('input')].map(input=>[input.name,input.value.trim()])));
+ function drawItems() {
+  const current=readItems();
+  current.forEach((item,i)=>{items[i]=item});
+  const children=[];
+  for (let i=0;i<Number(el('count').value);i++) {
+   const item=items[i]||{};
+   const box=node('fieldset');box.className='item';box.append(node('legend','문장 '+(i+1)));
+   const parts=node('div');parts.className='parts';
+   for (const [key,label] of [['a','앞 구간 A'],['middle','가운데'],['b','뒤 구간 B']]) {
+    const input=node('input');input.name=key;input.maxLength=90;input.required=key!=='middle';input.value=item[key]||'';
+    const field=node('label',label);field.append(input);parts.append(field);
+   }
+   box.append(parts);children.push(box);
+  }
+  el('items').replaceChildren(...children);
+ }
+ el('count').onchange=drawItems;
+ drawItems();
+ el('configForm').onsubmit=async event=>{
+  event.preventDefault();
+  const button=event.submitter;
+  const config={title:el('title').value.trim(),practice:el('practice').value.trim(),font:Number(el('font').value),collectName:el('collectName').checked,items:readItems()};
+  if (config.items.some(item=>Object.values(item).join('').length>135)) {notice('문장 하나는 135자 이하로 입력해 주세요.');return}
+  button.disabled=true;notice('검사를 저장하고 있습니다.');
+  const key=hexKey();
+  try {
+   const {id}=await api('',post({admin,key,config}));
+   localPut('paran-studies',[{id,key,title:config.title},...localGet('paran-studies',[])]);
+   renderLinks(id,key,config.title);
+   displaySaved();
+   await loadReport(id,key);
+  } catch(error) {notice(error.message)}
+  finally {button.disabled=false}
+ };
+ openSetup();
+}
+
+function displaySaved() {
+ const studies=localGet('paran-studies',[]);
+ const entries=studies.map(({id,key,title})=>{
+  const link=node('a',title);link.href='/?report='+id+'#key='+key;
+  const p=node('p');p.append(link);return p;
+ });
+ el('saved').replaceChildren(...(entries.length?entries:[node('p','이 브라우저에 저장된 검사가 없습니다.')]));
+}
+
+function renderLinks(id,key,title) {
+ show('links');
+ set('linkTitle',title);
+ el('studentLink').value=location.origin+'/student?id='+id;
+ el('reportLink').value=location.origin+'/?report='+id+'#key='+key;
+ el('copyStudent').onclick=()=>copy('studentLink');
+ el('copyReport').onclick=()=>copy('reportLink');
+ el('newSetup').onclick=()=>location.assign('/');
+}
+
+async function copy(id) {
+ const field=el(id);
+ try {await navigator.clipboard.writeText(field.value);notice('링크를 복사했습니다.')}
+ catch {field.focus();field.select();notice('선택된 링크를 복사해 주세요.')}
+}
+
+function table(container,labels,rows) {
+ const t=node('table'), thead=node('thead'), head=node('tr'), tbody=node('tbody');
+ for(const label of labels)head.append(node('th',label));
+ thead.append(head);
+ for(const row of rows){
+  const tr=node('tr');for(const value of row)tr.append(node('td',value));tbody.append(tr);
+ }
+ t.append(thead,tbody);el(container).replaceChildren(t);
+}
+function full(item) {return [item.a,item.middle,item.b].filter(Boolean).join(' ')}
+function filename(text) {return text.replace(/[^\p{L}\p{N}_-]+/gu,'_').slice(0,70)}
+function csvCell(raw) {
+ let value=String(raw??'');
+ if (/^\s*[=+\-@]/.test(value) && typeof raw!=='number') value="'"+value;
+ return '"'+value.replaceAll('"','""')+'"';
+}
+function downloadCsv(name,labels,rows) {
+ const content='\ufeff'+[labels,...rows].map(r=>r.map(csvCell).join(',')).join('\r\n');
+ const url=URL.createObjectURL(new Blob([content],{type:'text/csv;charset=utf-8'}));
+ const a=node('a');a.href=url;a.download=filename(name)+'_문장별.csv';a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+async function loadReport(id,key) {
+ el('refresh').onclick=()=>loadReport(id,key);
+ el('print').onclick=()=>window.print();
+ notice('보고서를 불러오는 중입니다.');
+ try {
+  const {config,sessions}=await api('/'+id+'/report',{headers:{Authorization:'Bearer '+key}});
+  set('linkTitle',config.title);
+  show('report');
+  set('reportTitle',config.title+' 결과보고서');
+  const completed=sessions.filter(s=>s.state==='completed').length;
+  const unique=new Set(sessions.map(s=>s.participant)).size;
+  set('reportMeta','참가자 번호 '+unique+'개 · 제출 '+sessions.length+'건 · 완료 '+completed+'건 · 중단 '+(sessions.length-completed)+'건 · 글자 '+config.font+' px');
+  const aggregate=config.items.map((item,i)=>{
+   const summaries=sessions.map(s=>s.trials[i]?.summary).filter(Boolean);
+   const valid=summaries.filter(s=>s.returns!==null);
+   const returned=valid.filter(s=>s.returns>0).length;
+   const mean=valid.length?valid.reduce((total,s)=>total+s.ms,0)/valid.length:null;
+   return [i+1,full(item),summaries.length,valid.length,returned,pct(valid.length?returned/valid.length:null),summaries.length-valid.length,ms(mean)];
+  });
+  table('aggregate',['문장','내용','제출','판정 가능','회귀한 시행','회귀율','제외','평균 읽기(ms)'],aggregate);
+  const labels=['참가자 번호',...(config.collectName?['이름']:[]),'상태','문장','읽기(ms)','A 첫 도달(ms)','B 첫 도달(ms)','A 체류(ms)','B 체류(ms)','회귀 횟수','추적률','제외 사유','보정 오차(px)'];
+  const rows=[], traces=[];
+  for(const s of sessions){
+   s.trials.forEach((trial,i)=>{
+    const v=trial.summary;
+    rows.push([s.participant,...(config.collectName?[s.name]:[]),s.state==='completed'?'완료':'중단',i+1,v.ms,v.first.a,v.first.b,v.totals.a,v.totals.b,v.returns,Number(v.coverage.toFixed(4)),v.reason,s.error]);
+    traces.push({label:s.participant+' · 문장 '+(i+1)+' · '+s.created_at.slice(0,19),trial,item:config.items[i]});
+   });
+  }
+  const coverageIndex=labels.indexOf('추적률');
+  table('detail',labels,rows.map(row=>row.map((value,index)=>index===coverageIndex?pct(value):value??'—')));
+  el('csv').disabled=!rows.length;
+  el('csv').onclick=()=>downloadCsv(config.title,[...labels,'문장 내용'],rows.map(row=>[...row,full(config.items[row[labels.indexOf('문장')]-1])]));
+  const select=el('plotSelect');select.replaceChildren(...traces.map((trace,index)=>new Option(trace.label,String(index))));
+  show('plotPanel',traces.length>0);
+  select.onchange=()=>drawTrace(traces[Number(select.value)]);
+  if(traces.length)drawTrace(traces[0]);
+  notice(sessions.length?'':'아직 제출된 검사 결과가 없습니다.');
+ }catch(error){notice(error.message)}
+}
+
+function drawTrace(trace) {
+ set('plotLabel',trace.label+' · '+full(trace.item));
+ const canvas=el('chart'), ctx=canvas.getContext('2d'), w=canvas.width,h=canvas.height;
+ const {trial}=trace, x=t=>54+t/Math.max(1,trial.ms)*(w-76), y=v=>h-36-v*(h-64);
+ ctx.clearRect(0,0,w,h);
+ for(const [zone,color,label] of [[trial.a,'#dce9ff','A'],[trial.b,'#def3ec','B']]){
+  ctx.fillStyle=color;ctx.fillRect(54,y(zone[2]),w-76,y(zone[0])-y(zone[2]));
+  ctx.fillStyle='#304865';ctx.fillText(label,32,y((zone[2]+zone[0])/2));
+ }
+ ctx.strokeStyle='#9caec7';ctx.strokeRect(54,28,w-76,h-64);
+ ctx.fillStyle='#28446c';ctx.font='14px system-ui';ctx.fillText('왼쪽',9,h-33);ctx.fillText('오른쪽',6,31);
+ ctx.fillText('0초',54,h-12);ctx.fillText((trial.ms/1000).toFixed(1)+'초',w-70,h-12);
+ ctx.strokeStyle='#1d52bd';ctx.lineWidth=2;ctx.beginPath();
+ let previous=null;
+ for(const [t,horizontal] of trial.samples){
+  if(horizontal<0||horizontal>1){previous=null;continue}
+  if(previous===null||t-previous>250)ctx.moveTo(x(t),y(horizontal));else ctx.lineTo(x(t),y(horizontal));
+  previous=t;
+ }
+ ctx.stroke();
+}
+
+async function startStudent() {
+ show('student');
+ set('viewLabel','학생용 검사');
+ const studyId=params.get('id');
+ let config;
+ try {
+  if(!/^[a-f\d-]{36}$/.test(studyId))throw new Error('교사가 보내 준 검사 링크를 열어 주세요.');
+  config=await api('/'+studyId);
+ }catch(error){set('testTitle','검사를 열 수 없습니다.');studentStatus(error.message);return}
+ set('testTitle',config.title);
+ show('nameLabel',config.collectName);
+ el('name').required=config.collectName;
+ show('join');
+
+ const stage=el('stage'), target=el('target'), reading=el('reading');
+ const grid=[.12,.5,.88].flatMap(x=>[.18,.5,.82].map(y=>[x,y]));
+ const checks=[[.27,.29],[.73,.68],[.28,.69],[.72,.32],[.54,.57]];
+ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ let tracker, state='intro', generation=0, pointIndex=0, clicks=0, box;
+ let samples=[], started=0, trialBounds, validationSamples=null, calibration=null, limitTimer;
+ let session, index=0;
+ const stopTracking=()=>{
+  const video=tracker && el(tracker.params.videoElementId);
+  if(video?.srcObject){
+   for(const track of video.srcObject.getTracks())track.stop();
+   tracker.removeMouseEventListeners();
+   tracker.end();
+  }
+ };
+ window.addEventListener('pagehide',stopTracking);
+ const clearStage=()=>{
+  clearTimeout(limitTimer);
+  show('target',false);
+  show('reading',false);
+  show('advance',false);
+  show('retry',false);
+  validationSamples=null;
+ };
+ function setPoint([x,y],label) {
+  target.style.left=x*100+'%';target.style.top=y*100+'%';
+  target.textContent=label;show('target');
+ }
+ function gaze(value) {
+  if(!value || !Number.isFinite(value.x) || !Number.isFinite(value.y))return;
+  if(validationSamples)validationSamples.push(value);
+  if(state!=='trial')return;
+  const t=Math.round(performance.now()-started);
+  if(t>60000 || (samples.length && t-samples.at(-1)[0]<100))return;
+  const x=(value.x-box.left)/box.width,y=(value.y-box.top)/box.height;
+  if(x<-2||x>3||y<-2||y>3)return;
+  samples.push([t,Number(x.toFixed(4)),Number(y.toFixed(4))]);
+ }
+ function loadTracker() {
+  if(window.webgazer)return Promise.resolve(window.webgazer);
+  return new Promise((resolve,reject)=>{
+   const lib=node('script');
+   const timeout=setTimeout(()=>{lib.remove();reject(new Error('시선 추적 모듈 연결 시간이 초과됐습니다.'))},20000);
+   lib.src='https://cdn.jsdelivr.net/npm/webgazer@3.4.0/dist/webgazer.js';
+   lib.onload=()=>{clearTimeout(timeout);window.webgazer ? resolve(window.webgazer) : reject(new Error('시선 추적 모듈을 열 수 없습니다.'))};
+   lib.onerror=()=>{clearTimeout(timeout);lib.remove();reject(new Error('시선 추적 모듈을 불러오지 못했습니다.'))};
+   document.head.append(lib);
+  });
+ }
+ el('join').onsubmit=async event=>{
+  event.preventDefault();
+  const code=el('code').value.trim(),name=config.collectName?el('name').value.trim():'';
+  if(!code || (config.collectName && !name)){studentStatus('참가자 번호와 필수 정보를 입력해 주세요.');return}
+  el('begin').disabled=true;
+  studentStatus('시선 추적 모듈을 여는 중입니다. 브라우저에서 카메라 사용을 허용해 주세요.');
+  try {
+   if(!navigator.mediaDevices?.getUserMedia)throw new Error('PC의 Chrome 또는 Edge에서 검사 링크를 직접 열어 주세요.');
+   tracker=await loadTracker();
+   tracker.saveDataAcrossSessions(false);
+   tracker.showVideoPreview(false);
+   tracker.showPredictionPoints(false);
+   tracker.setGazeListener(gaze);
+   await tracker.begin();
+   tracker.removeMouseEventListeners();
+   if(!el(tracker.params.videoElementId)?.srcObject?.getVideoTracks().some(track=>track.readyState==='live'))throw new Error('웹캠 연결을 확인해 주세요.');
+   session={id:crypto.randomUUID(),code,name,trials:[]};
+   show('intro',false);show('stage');show('end');
+   await calibrate();
+  }catch(error){
+   stopTracking();
+   studentStatus(error.name==='NotAllowedError'
+    ? '카메라 접근이 거부됐습니다. 주소창의 사이트 권한에서 카메라를 허용한 뒤 다시 시작해 주세요.'
+    : '시선 추적을 시작할 수 없습니다. '+error.message);
+   el('begin').disabled=false;
+  }
+ };
+ async function calibrate() {
+  const current=++generation;
+  clearStage();state='preparing';pointIndex=clicks=0;
+  await tracker.clearData();
+  if(current!==generation)return;
+  box=stage.getBoundingClientRect();
+  state='calibration';
+  studentStatus('파란 점을 바라보며 같은 점을 5번 클릭하세요. 점이 옮겨가면 반복하세요.');
+  setPoint(grid[pointIndex],'5');
+ }
+ target.onclick=()=>{
+  if(state!=='calibration')return;
+  const rect=target.getBoundingClientRect();
+  tracker.recordScreenPosition(rect.left+rect.width/2,rect.top+rect.height/2,'click');
+  if(++clicks<5){setPoint(grid[pointIndex],String(5-clicks));return}
+  clicks=0;
+  if(++pointIndex<grid.length){setPoint(grid[pointIndex],'5');return}
+  validate();
+ };
+ const median=values=>{const sorted=[...values].sort((a,b)=>a-b);return sorted[Math.floor(sorted.length/2)]};
+ async function validate() {
+  state='validation';
+  const current=generation;
+  const errors=[];
+  studentStatus('파란 점이 움직이면 클릭 없이 시선으로 따라가세요.');
+  for(const point of checks){
+   setPoint(point,'');
+   const rect=target.getBoundingClientRect(), x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+   await wait(690);if(current!==generation)return;
+   const observations=[];
+   validationSamples=observations;
+   await wait(790);if(current!==generation)return;
+   validationSamples=null;
+   if(observations.length>=3)errors.push(median(observations.map(v=>Math.hypot(v.x-x,v.y-y))));
+  }
+  show('target',false);show('retry');
+  if(errors.length<3){
+   state='recheck';
+   studentStatus('5개 중 '+errors.length+'개 지점에서 시선을 얻었습니다. 카메라 정면에 앉고 조명을 확인한 뒤 다시 보정하세요.');
+   return;
+  }
+  calibration={error:Math.round(median(errors)),checkPoints:errors.length};
+  state='ready';
+  studentStatus('보정 확인 '+calibration.checkPoints+'/5 · 위치 오차 '+calibration.error+' px. 오차가 크거나 얼굴 위치가 변했으면 다시 보정하세요.');
+  el('advance').textContent='연습 시작';show('advance');
+ }
+ function display(item) {
+  for(const key of ['a','middle','b']){
+   set(key,item[key]);show(key,Boolean(item[key]));
+  }
+  reading.style.fontSize=config.font+'px';
+  show('reading');
+  if(reading.getBoundingClientRect().width>stage.clientWidth-22){
+   const scaled=Math.floor(config.font*(stage.clientWidth-22)/reading.getBoundingClientRect().width);
+   reading.style.fontSize=Math.max(16,scaled)+'px';
+  }
+  return reading.getBoundingClientRect().width<=stage.clientWidth-16;
+ }
+ function nextTrial() {
+  clearStage();
+  const item=config.items[index];
+  if(!display(item)){
+   clearStage();state='recheck';
+   studentStatus('문장이 화면 한 줄에 들어가지 않습니다. 더 넓은 PC 화면에서 다시 시작하거나 교사에게 알려 주세요.');
+   show('retry');return;
+  }
+  const norm=(value,origin,extent)=>Math.max(0,Math.min(1,(value-origin)/extent));
+  const a=el('a').getBoundingClientRect(),b=el('b').getBoundingClientRect();
+  const pad=Math.min(config.font*.35,Math.max(0,(b.left-a.right)/3));
+  const bounds=rect=>[
+   norm(rect.left-pad,box.left,box.width),norm(rect.top-config.font*.45,box.top,box.height),
+   norm(rect.right+pad,box.left,box.width),norm(rect.bottom+config.font*.45,box.top,box.height)
+  ];
+  trialBounds={a:bounds(a),b:bounds(b)};
+  samples=[];
+  studentStatus('문장 '+(index+1)+' / '+config.items.length);
+  el('advance').textContent='다 읽었어요';show('advance');
+  state='trial';
+  started=performance.now();
+  limitTimer=setTimeout(()=>finishTrial(),60000);
+ }
+ function finishTrial() {
+  if(state!=='trial')return;
+  const elapsed=Math.min(60000,Math.round(performance.now()-started));
+  if(elapsed<250)return;
+  clearTimeout(limitTimer);
+  session.trials.push({ms:elapsed,samples,...trialBounds});
+  ++index;
+  if(index===config.items.length){submit('completed');return}
+  nextTrial();
+ }
+ function advance() {
+  if(state==='ready'){
+   clearStage();state='practice';
+   display({a:config.practice,middle:'',b:''});
+   studentStatus('연습 문장입니다. 다 읽으면 스페이스바나 아래 버튼을 누르세요.');
+   el('advance').textContent='본검사 시작';show('advance');
+  }else if(state==='practice')nextTrial();
+  else if(state==='trial')finishTrial();
+ }
+ el('advance').onclick=advance;
+ window.addEventListener('keydown',event=>{
+  if(event.code!=='Space'||!['practice','trial'].includes(state)||event.repeat)return;
+  event.preventDefault();advance();
+ });
+ el('retry').onclick=()=>calibrate();
+ el('end').onclick=()=>{
+  if(!window.confirm('검사를 중단할까요? 이미 읽은 문장만 저장합니다.'))return;
+  if(session.trials.length){submit('partial');return}
+  ++generation;clearStage();stopTracking();state='done';
+  show('stage',false);show('end',false);
+  studentStatus('검사를 중단했습니다. 제출한 문장은 없습니다.');
+ };
+ function checkGeometry(){
+  if(!box||!['calibration','validation','ready','practice','trial'].includes(state))return;
+  const rect=stage.getBoundingClientRect();
+  if(['left','top','width','height'].every(key=>Math.abs(rect[key]-box[key])<3))return;
+  ++generation;state='recheck';clearStage();show('retry');
+  studentStatus('실험 화면 위치가 바뀌었습니다. 같은 문장을 다시 읽기 전에 보정해 주세요.');
+ }
+ window.addEventListener('resize',checkGeometry);
+ window.addEventListener('scroll',checkGeometry);
+ async function submit(submissionState) {
+  ++generation;state='sending';clearStage();stopTracking();
+  show('stage',false);show('end',false);show('resend',false);
+  session.state=submissionState;
+  session.error=calibration.error;
+  session.checkPoints=calibration.checkPoints;
+  studentStatus('결과를 저장하고 있습니다.');
+  try {
+   await api('/'+studyId+'/submit',post(session));
+   state='done';
+   studentStatus(submissionState==='completed' ? '검사를 마쳤습니다. 결과가 저장되었습니다. 이 창을 닫아도 됩니다.' : '읽기를 마친 문장의 결과가 저장되었습니다.');
+  }catch(error){
+   state='retry-save';show('resend');
+   studentStatus('결과 저장에 실패했습니다. 창을 닫지 말고 결과 저장을 다시 시도해 주세요. '+error.message);
+  }
+ }
+ el('resend').onclick=()=>submit(session.state);
+}
+</script>
+</body>
+</html>
