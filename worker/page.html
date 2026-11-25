@@ -67,7 +67,7 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <section class="panel">
 <h2>새 검사 설정</h2>
 <form id="configForm">
-<label>검사 이름<input id="title" maxlength="80" required value="영어 읽기 · 한국어 이해 예비검사"></label>
+<label>검사 이름<input id="title" maxlength="80" required value="영어 읽기 · 한국어 이해 5문장 예비검사"></label>
 <label>연습 문장<input id="practice" maxlength="110" required value="Mina opened the window."></label>
 <div class="fields"><label>본검사 문장 수<select id="count"></select></label><label>글자 크기<select id="font"></select></label></div>
 <label><input id="collectName" type="checkbox"> 참가자 이름도 입력받기</label>
@@ -196,7 +196,7 @@ function startTeacher() {
  };
  for (let i=1;i<=10;i++) el('count').append(new Option(i+'개',String(i)));
  for (const size of [24,28,32,36,40,44,48,52,56,60,64]) el('font').append(new Option(size+' px',String(size)));
- el('count').value='1';el('font').value='44';
+ el('count').value='5';el('font').value='44';
  const items = [
   {
     "a": "Before class,",
@@ -205,6 +205,42 @@ function startTeacher() {
     "question": "미나는 파란 공책을 어디에 두었습니까?",
     "option1": "창문 옆",
     "option2": "책상 아래",
+    "correct": "1"
+  },
+  {
+    "a": "After lunch,",
+    "middle": "Daniel lent his umbrella",
+    "b": "to his younger sister.",
+    "question": "다니엘은 누구에게 우산을 빌려주었습니까?",
+    "option1": "친구",
+    "option2": "여동생",
+    "correct": "2"
+  },
+  {
+    "a": "The bus arrived",
+    "middle": "ten minutes late",
+    "b": "because of the rain.",
+    "question": "버스가 늦게 도착한 이유는 무엇입니까?",
+    "option1": "비가 와서",
+    "option2": "도로 공사를 해서",
+    "correct": "1"
+  },
+  {
+    "a": "On Tuesday,",
+    "middle": "the library closed early",
+    "b": "for a staff meeting.",
+    "question": "도서관은 왜 일찍 문을 닫았습니까?",
+    "option1": "전기가 끊겨서",
+    "option2": "직원 회의가 있어서",
+    "correct": "2"
+  },
+  {
+    "a": "After the show,",
+    "middle": "Julia found her ticket",
+    "b": "inside her coat pocket.",
+    "question": "줄리아는 표를 어디에서 찾았습니까?",
+    "option1": "코트 주머니 안",
+    "option2": "가방 안",
     "correct": "1"
   }
 ];
