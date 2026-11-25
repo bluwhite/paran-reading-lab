@@ -34,9 +34,6 @@ a{color:#174fb4}
 #studentTop{min-height:105px}
 #stage{height:clamp(295px,51vh,580px);background:white;border:1px solid var(--line);border-radius:14px;position:relative;display:grid;place-items:center;overflow:hidden}
 #gazeDot{position:absolute;width:16px;height:16px;transform:translate(-50%,-50%);border-radius:50%;background:#ba253e;border:2px solid white;box-shadow:0 0 0 2px #ba253e;pointer-events:none;z-index:3}
-.gazeZone{position:absolute;border:2px dashed #5178bd;border-radius:6px;color:#264777;font-size:13px;font-weight:700;pointer-events:none}
-.gazeZone span{position:absolute;bottom:100%;left:3px}
-.gazeZone.active{border-style:solid;border-color:#147b61;color:#17654f}
 #target{width:42px;height:42px;position:absolute;transform:translate(-50%,-50%);border-radius:50%;padding:0;background:#174fb4;color:white;border:4px solid #c7dbff}
 #reading{display:flex;justify-content:center;align-items:baseline;gap:.34em;white-space:nowrap;max-width:none;position:absolute;line-height:1.35}
 .tableWrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}
@@ -70,7 +67,7 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <label>연습 문장<input id="practice" maxlength="110" required value="민수가 창문을 열었어요."></label>
 <div class="fields"><label>본검사 문장 수<select id="count"></select></label><label>글자 크기<select id="font"></select></label></div>
 <label><input id="collectName" type="checkbox"> 참가자 이름도 입력받기</label>
-<p class="small">문장을 앞 구간 A, 가운데, 뒤 구간 B로 나눠 입력하세요. 학생에게는 한 줄로 표시됩니다. 가운데 부분은 비워도 됩니다.</p>
+<p class="small">문장을 앞부분, 가운데, 뒤로 나눠 입력하세요. 학생에게는 한 줄로 표시되며, 가로 위치는 문장 전체의 너비를 기준으로 분석합니다.</p>
 <div id="items"></div>
 <button class="primary" type="submit">검사 만들기</button>
 </form>
@@ -90,12 +87,12 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <h2 id="reportTitle"></h2><p id="reportMeta"></p>
 <div class="row noPrint"><button id="refresh">새로고침</button><button id="print">보고서 인쇄 / PDF</button><button id="csv">CSV 다운로드</button></div>
 <h3 style="margin-top:24px">문장별 요약</h3><div id="aggregate" class="tableWrap"></div>
-<h3 style="margin-top:24px">참가자별 기록</h3><div id="detail" class="tableWrap"></div>
+<h3 style="margin-top:24px">참가자별 기록</h3><p class="small">문장이 나타난 뒤 스페이스바를 누를 때까지 수집한 x좌표를 왼쪽·중앙·오른쪽으로 나눕니다. 비율은 화면 안에서 수집된 표본 수를 기준으로 하며, 개별 단어의 응시나 회귀를 뜻하지 않습니다.</p><div id="detail" class="tableWrap"></div>
 </section>
 <section id="plotPanel" class="panel" hidden>
 <h2>문장별 시선 이동</h2><label class="noPrint">참가자와 문장<select id="plotSelect"></select></label><p id="plotLabel"></p>
 <canvas id="chart" width="900" height="300" role="img" aria-label="시간에 따른 시선 가로 위치"></canvas>
-<p class="small">가로축은 읽기 시간, 세로축은 화면 왼쪽에서 오른쪽까지의 상대 위치입니다. 띠는 A·B 분석 구간의 가로 범위입니다.</p>
+<p class="small">가로축은 문장이 표시된 뒤 지난 시간이고, 세로축은 문장 너비를 기준으로 한 가로 시선 위치입니다. 점선은 문장을 가로로 3등분한 경계입니다.</p>
 </section>
 </div>
 <div id="student" hidden>
@@ -106,6 +103,7 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <li>PC의 카메라 정면에 앉고 얼굴과 화면 사이 거리를 약 <strong>60cm</strong>로 유지하세요.</li>
 <li>얼굴이 잘 보이도록 조명을 켜고, 검사 중에는 고개나 몸을 크게 움직이지 마세요.</li>
 <li>브라우저 창의 크기와 확대 비율을 검사 중에 바꾸지 마세요.</li>
+<li><strong>문장을 다 읽으면 시선을 문장에 둔 채 스페이스바를 누르세요.</strong> 본검사에서는 스페이스바로 다음 문장으로 넘어갑니다.</li>
 <li><strong>화면과 얼굴 영상을 녹화하지 않으며, 음성도 수집하지 않습니다.</strong> 웹캠 영상은 브라우저에서 시선 위치를 추정하는 데 사용합니다. <span id="studentStorageNote">서버에는 참가자 정보, 문장별 시간, 추정 시선 좌표가 저장됩니다.</span></li>
 </ul>
 <form id="join" hidden>
@@ -116,7 +114,7 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 </section>
 <div id="studentTop"><p id="studentStatus" role="status" aria-live="polite"></p>
 <div class="row"><button id="advance" class="primary" hidden>다음</button><button id="retry" hidden>다시 보정</button><button id="end" hidden>검사 중단</button><button id="resend" class="primary" hidden>결과 저장 다시 시도</button></div></div>
-<div id="stage" hidden><button id="target" hidden aria-label="보정 기준점"></button><div id="reading" hidden><span id="a"></span><span id="middle"></span><span id="b"></span></div><div id="zoneA" class="gazeZone" aria-hidden="true" hidden><span>A</span></div><div id="zoneB" class="gazeZone" aria-hidden="true" hidden><span>B</span></div><div id="gazeDot" aria-hidden="true" hidden></div></div>
+<div id="stage" hidden><button id="target" hidden aria-label="보정 기준점"></button><div id="reading" hidden><span id="a"></span><span id="middle"></span><span id="b"></span></div><div id="gazeDot" aria-hidden="true" hidden></div></div>
 </div>
 </main>
 <script>
@@ -297,6 +295,31 @@ function downloadCsv(name,labels,rows) {
  const a=node('a');a.href=url;a.download=filename(name)+'_문장별.csv';a.click();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+function sentenceLimits(trial) {
+ const edges=trial.sentenceX;
+ if(Array.isArray(edges) && edges.length===2 && edges.every(Number.isFinite) && edges[0]>=0 && edges[1]<=1 && edges[1]>edges[0])return edges;
+ const left=trial.a?.[0],right=trial.b?.[2];
+ return Number.isFinite(left) && Number.isFinite(right) && right>left?[left,right]:null;
+}
+function horizontalTrend(trial) {
+ const limits=sentenceLimits(trial);
+ const counts=[0,0,0];
+ let total=0;
+ if(limits){
+  const [left,right]=limits;
+  for(const [,x] of trial.samples){
+   if(!Number.isFinite(x)||x<0||x>1)continue;
+   const position=(x-left)/(right-left);
+   counts[position<1/3?0:position<2/3?1:2]++;
+   total++;
+  }
+ }
+ const ratios=total?counts.map(count=>count/total):[null,null,null];
+ const highest=Math.max(...counts);
+ const index=counts.indexOf(highest);
+ const label=total<3?'표본 부족':counts.lastIndexOf(highest)!==index?'동률':['왼쪽','중앙','오른쪽'][index];
+ return {ratios,total,label,estimated:!Array.isArray(trial.sentenceX)};
+}
 async function loadReport(id,key) {
  el('refresh').onclick=()=>loadReport(id,key);
  el('print').onclick=()=>window.print();
@@ -310,24 +333,24 @@ async function loadReport(id,key) {
   const unique=new Set(sessions.map(s=>s.participant)).size;
   set('reportMeta','참가자 번호 '+unique+'개 · 제출 '+sessions.length+'건 · 완료 '+completed+'건 · 중단 '+(sessions.length-completed)+'건 · 글자 '+config.font+' px');
   const aggregate=config.items.map((item,i)=>{
-   const summaries=sessions.map(s=>s.trials[i]?.summary).filter(Boolean);
-   const valid=summaries.filter(s=>s.returns!==null);
-   const returned=valid.filter(s=>s.returns>0).length;
-   const mean=valid.length?valid.reduce((total,s)=>total+s.ms,0)/valid.length:null;
-   return [i+1,full(item),summaries.length,valid.length,returned,pct(valid.length?returned/valid.length:null),summaries.length-valid.length,ms(mean)];
+   const trials=sessions.map(session=>session.trials[i]).filter(Boolean);
+   const trends=trials.map(horizontalTrend).filter(trend=>trend.total>=3);
+   const ratios=[0,1,2].map(j=>trends.length?trends.reduce((sum,t)=>sum+t.ratios[j],0)/trends.length:null);
+   const mean=trials.length?trials.reduce((total,trial)=>total+trial.ms,0)/trials.length:null;
+   return [i+1,full(item),trials.length,trends.length,...ratios.map(pct),ms(mean)];
   });
-  table('aggregate',['문장','내용','제출','판정 가능','회귀한 시행','회귀율','제외','평균 읽기(ms)'],aggregate);
-  const labels=['참가자 번호',...(config.collectName?['이름']:[]),'상태','문장','읽기(ms)','A 첫 도달(ms)','B 첫 도달(ms)','A 체류(ms)','B 체류(ms)','회귀 횟수','추적률','제외 사유','보정 오차(px)'];
+  table('aggregate',['문장','내용','제출','비율 분석 가능','평균 왼쪽','평균 중앙','평균 오른쪽','평균 읽기(ms)'],aggregate);
+  const labels=['참가자 번호',...(config.collectName?['이름']:[]),'상태','문장','읽기(ms)','왼쪽 비율','중앙 비율','오른쪽 비율','가장 많이 관측된 구간','가로 표본 수','문장 범위','추적률','보정 오차(px)'];
   const rows=[], traces=[];
   for(const s of sessions){
    s.trials.forEach((trial,i)=>{
-    const v=trial.summary;
-    rows.push([s.participant,...(config.collectName?[s.name]:[]),s.state==='completed'?'완료':'중단',i+1,v.ms,v.first.a,v.first.b,v.totals.a,v.totals.b,v.returns,Number(v.coverage.toFixed(4)),v.reason,s.error]);
+    const trend=horizontalTrend(trial);
+    rows.push([s.participant,...(config.collectName?[s.name]:[]),s.state==='completed'?'완료':'중단',i+1,trial.ms,...trend.ratios.map(v=>v===null?null:Number(v.toFixed(4))),trend.label,trend.total,trend.estimated?'기존 자료 · 근사':'실측 배치',Number(trial.summary.coverage.toFixed(4)),s.error]);
     traces.push({label:s.participant+' · 문장 '+(i+1)+' · '+s.created_at.slice(0,19),trial,item:config.items[i]});
    });
   }
-  const coverageIndex=labels.indexOf('추적률');
-  table('detail',labels,rows.map(row=>row.map((value,index)=>index===coverageIndex?pct(value):value??'—')));
+  const percentages=new Set(['왼쪽 비율','중앙 비율','오른쪽 비율','추적률']);
+  table('detail',labels,rows.map(row=>row.map((value,index)=>percentages.has(labels[index])?pct(value):value??'—')));
   el('csv').disabled=!rows.length;
   el('csv').onclick=()=>downloadCsv(config.title,[...labels,'문장 내용'],rows.map(row=>[...row,full(config.items[row[labels.indexOf('문장')]-1])]));
   const select=el('plotSelect');select.replaceChildren(...traces.map((trace,index)=>new Option(trace.label,String(index))));
@@ -342,19 +365,29 @@ function drawTrace(trace) {
  set('plotLabel',trace.label+' · '+full(trace.item));
  const canvas=el('chart'), ctx=canvas.getContext('2d'), w=canvas.width,h=canvas.height;
  const {trial}=trace, x=t=>54+t/Math.max(1,trial.ms)*(w-76), y=v=>h-36-v*(h-64);
+ const limits=sentenceLimits(trial);
  ctx.clearRect(0,0,w,h);
- for(const [zone,color,label] of [[trial.a,'#dce9ff','A'],[trial.b,'#def3ec','B']]){
-  ctx.fillStyle=color;ctx.fillRect(54,y(zone[2]),w-76,y(zone[0])-y(zone[2]));
-  ctx.fillStyle='#304865';ctx.fillText(label,32,y((zone[2]+zone[0])/2));
+ if(!limits)return;
+ const [left,right]=limits;
+ ctx.font='14px system-ui';
+ for(const [index,label] of ['왼쪽','중앙','오른쪽'].entries()){
+  ctx.fillStyle=['#e9f1ff','#eef6f3','#e9f1ff'][index];
+  ctx.fillRect(54,y((index+1)/3),w-76,(h-64)/3);
+  ctx.fillStyle='#28446c';ctx.fillText(label,10,y((index+.5)/3)+5);
  }
  ctx.strokeStyle='#9caec7';ctx.strokeRect(54,28,w-76,h-64);
- ctx.fillStyle='#28446c';ctx.font='14px system-ui';ctx.fillText('왼쪽',9,h-33);ctx.fillText('오른쪽',6,31);
- ctx.fillText('0초',54,h-12);ctx.fillText((trial.ms/1000).toFixed(1)+'초',w-70,h-12);
+ ctx.setLineDash([4,4]);ctx.beginPath();
+ for(const boundary of [1/3,2/3]){
+  ctx.moveTo(54,y(boundary));ctx.lineTo(w-22,y(boundary));
+ }
+ ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle='#28446c';ctx.fillText('0초',54,h-12);ctx.fillText((trial.ms/1000).toFixed(1)+'초',w-70,h-12);
  ctx.strokeStyle='#1d52bd';ctx.lineWidth=2;ctx.beginPath();
  let previous=null;
  for(const [t,horizontal] of trial.samples){
   if(horizontal<0||horizontal>1){previous=null;continue}
-  if(previous===null||t-previous>250)ctx.moveTo(x(t),y(horizontal));else ctx.lineTo(x(t),y(horizontal));
+  const position=Math.max(0,Math.min(1,(horizontal-left)/(right-left)));
+  if(previous===null||t-previous>250)ctx.moveTo(x(t),y(position));else ctx.lineTo(x(t),y(position));
   previous=t;
  }
  ctx.stroke();
@@ -407,10 +440,6 @@ async function startStudent() {
   validationSamples=null;
   clearTimeout(gazeTimer);
   show('gazeDot',false);
-  for(const id of ['zoneA','zoneB']){
-   show(id,false);
-   el(id).classList.remove('active');
-  }
  };
  function setPoint([x,y],label) {
   target.style.left=x*100+'%';target.style.top=y*100+'%';
@@ -424,12 +453,6 @@ async function startStudent() {
    el('gazeDot').style.top=y*100+'%';
   }
   show('gazeDot',inside);
-  if(state==='trial'){
-   for(const [key,id] of [['a','zoneA'],['b','zoneB']]){
-    const [left,top,right,bottom]=trialBounds[key];
-    el(id).classList.toggle('active',x>=left && x<=right && y>=top && y<=bottom);
-   }
-  }
   if(inside)gazeTimer=setTimeout(()=>drawGaze(NaN,NaN),300);
  }
  function gaze(value) {
@@ -558,17 +581,12 @@ async function startStudent() {
    norm(rect.left-pad,box.left,box.width),norm(rect.top-config.font*.45,box.top,box.height),
    norm(rect.right+pad,box.left,box.width),norm(rect.bottom+config.font*.45,box.top,box.height)
   ];
-  trialBounds={a:bounds(a),b:bounds(b)};
-  if(preview){
-   for(const [key,id] of [['a','zoneA'],['b','zoneB']]){
-    const [left,top,right,bottom]=trialBounds[key];
-    Object.assign(el(id).style,{left:left*100+'%',top:top*100+'%',width:(right-left)*100+'%',height:(bottom-top)*100+'%'});
-    show(id);
-   }
-  }
+  trialBounds={
+   a:bounds(a),b:bounds(b),
+   sentenceX:[norm(a.left,box.left,box.width),norm(b.right,box.left,box.width)]
+  };
   samples=[];
-  studentStatus('문장 '+(index+1)+' / '+config.items.length+(preview?' · A → B → A 순서로 보며 빨간 점과 구간 반응을 확인하세요.':''));
-  el('advance').textContent='다 읽었어요';show('advance');
+  studentStatus('문장 '+(index+1)+' / '+config.items.length+' · 다 읽으면 시선을 문장에 둔 채 스페이스바를 누르세요.');
   state='trial';
   started=performance.now();
   limitTimer=setTimeout(()=>finishTrial(),60000);
@@ -587,14 +605,13 @@ async function startStudent() {
   if(state==='ready'){
    clearStage();state='practice';
    display({a:config.practice,middle:'',b:''});
-   studentStatus('연습 문장입니다. 다 읽으면 스페이스바나 아래 버튼을 누르세요.');
-   el('advance').textContent='본검사 시작';show('advance');
+   studentStatus('연습 문장입니다. 다 읽으면 시선을 문장에 둔 채 스페이스바를 눌러 본검사를 시작하세요.');
   }else if(state==='practice')nextTrial();
   else if(state==='trial')finishTrial();
  }
  el('advance').onclick=advance;
  window.addEventListener('keydown',event=>{
-  if(event.code!=='Space'||!['practice','trial'].includes(state)||event.repeat)return;
+  if(event.code!=='Space'||!['practice','trial'].includes(state)||event.repeat||event.altKey||event.ctrlKey||event.metaKey)return;
   event.preventDefault();advance();
  });
  el('retry').onclick=()=>calibrate();
