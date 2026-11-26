@@ -84,8 +84,9 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <section id="links" class="panel noPrint" hidden>
 <h2 id="linkTitle"></h2>
 <label>학생용 검사 링크<input id="studentLink" readonly></label>
+<label>베트남어 학생용 검사 링크<input id="studentLinkVi" readonly></label>
 <label>교사용 보고서 링크<input id="reportLink" readonly></label>
-<div class="row"><button id="copyStudent" class="primary">학생 링크 복사</button><a id="previewLink" target="_blank" rel="noopener">학생 검사 점검</a><button id="copyReport">보고서 링크 복사</button><button id="newSetup">새 검사 설정</button></div>
+<div class="row"><button id="copyStudent" class="primary">학생 링크 복사</button><a id="previewLink" target="_blank" rel="noopener">학생 검사 점검</a><button id="copyStudentVi">베트남어 학생 링크 복사</button><button id="copyReport">보고서 링크 복사</button><button id="newSetup">새 검사 설정</button></div>
 </section>
 <section id="report" class="panel" hidden>
 <h2 id="reportTitle"></h2><p id="reportMeta"></p>
@@ -101,24 +102,25 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 </div>
 <div id="student" hidden>
 <section class="panel" id="intro">
-<h2 id="testTitle">검사를 불러오는 중입니다.</h2>
-<p id="previewNotice" hidden>교사 점검 모드입니다. 읽는 동안 빨간 점으로 추정 시선을 보여 줍니다. 점검 결과는 보고서에 저장되지 않습니다.</p>
+<nav class="small" aria-label="Ngôn ngữ / 언어"><a id="studentKo" lang="ko">한국어</a> · <a id="studentVi" lang="vi">Tiếng Việt</a></nav>
+<h2 id="testTitle" data-vi="Đang tải bài kiểm tra.">검사를 불러오는 중입니다.</h2>
+<p id="previewNotice" hidden><span data-vi="Chế độ xem thử dành cho giáo viên. Chấm đỏ biểu thị vị trí nhìn ước tính khi đọc. Kết quả xem thử không được lưu.">교사 점검 모드입니다. 읽는 동안 빨간 점으로 추정 시선을 보여 줍니다. 점검 결과는 보고서에 저장되지 않습니다.</span></p>
 <ul>
-<li>PC의 카메라 정면에 앉고 얼굴과 화면 사이 거리를 약 <strong>60cm</strong>로 유지하세요.</li>
-<li>얼굴이 잘 보이도록 조명을 켜고, 검사 중에는 고개나 몸을 크게 움직이지 마세요.</li>
-<li>브라우저 창의 크기와 확대 비율을 검사 중에 바꾸지 마세요.</li>
-<li><strong>문장을 다 읽으면 시선을 문장에 둔 채 스페이스바를 누르세요.</strong> 본검사에서는 스페이스바로 다음 문장으로 넘어갑니다.</li>
-<li><strong>화면과 얼굴 영상을 녹화하지 않으며, 음성도 수집하지 않습니다.</strong> 웹캠 영상은 브라우저에서 시선 위치를 추정하는 데 사용합니다. <span id="studentStorageNote">서버에는 참가자 정보, 문장별 시간, 추정 시선 좌표가 저장됩니다.</span></li>
+<li><span data-vi="Hãy ngồi đối diện webcam máy tính và giữ khoảng cách từ mặt đến màn hình khoảng 60 cm.">PC의 카메라 정면에 앉고 얼굴과 화면 사이 거리를 약 <strong>60cm</strong>로 유지하세요.</span></li>
+<li><span data-vi="Hãy bật đèn để khuôn mặt hiện rõ và tránh cử động đầu hoặc người quá nhiều trong khi làm bài.">얼굴이 잘 보이도록 조명을 켜고, 검사 중에는 고개나 몸을 크게 움직이지 마세요.</span></li>
+<li><span data-vi="Không thay đổi kích thước cửa sổ hoặc mức thu phóng của trình duyệt trong khi làm bài.">브라우저 창의 크기와 확대 비율을 검사 중에 바꾸지 마세요.</span></li>
+<li><span data-vi="Đọc xong, hãy giữ mắt nhìn vào câu và nhấn phím cách (Space). Nếu có câu hỏi, hãy chọn một đáp án rồi tiếp tục."><strong>문장을 다 읽으면 시선을 문장에 둔 채 스페이스바를 누르세요.</strong> 본검사에서는 스페이스바로 다음 문장으로 넘어갑니다.</span></li>
+<li><span data-vi="Không ghi hình màn hình hay khuôn mặt và không thu âm. Trình duyệt chỉ dùng hình ảnh từ webcam để ước tính vị trí nhìn. "><strong>화면과 얼굴 영상을 녹화하지 않으며, 음성도 수집하지 않습니다.</strong> 웹캠 영상은 브라우저에서 시선 위치를 추정하는 데 사용합니다. </span><span id="studentStorageNote"><span data-vi="Máy chủ lưu thông tin người tham gia, thời gian đọc từng câu, tọa độ nhìn ước tính và câu trả lời.">서버에는 참가자 정보, 문장별 시간, 추정 시선 좌표가 저장됩니다.</span></span></li>
 </ul>
 <form id="join" hidden>
-<div class="fields"><label>참가자 번호<input id="code" required maxlength="40" placeholder="예 S001" autocomplete="off"></label><label id="nameLabel" hidden>이름<input id="name" maxlength="60" autocomplete="off"></label></div>
-<label><input id="consent" type="checkbox" required> <span id="consentLabel">안내를 읽었으며 검사 참여와 위 정보 저장에 동의합니다.</span></label>
-<button class="primary" id="begin">웹캠 켜고 보정 시작</button>
+<div class="fields"><label><span data-vi="Mã người tham gia">참가자 번호</span><input id="code" required maxlength="40" placeholder="예 S001" autocomplete="off"></label><label id="nameLabel" hidden><span data-vi="Họ và tên">이름</span><input id="name" maxlength="60" autocomplete="off"></label></div>
+<label><input id="consent" type="checkbox" required> <span id="consentLabel"><span data-vi="Tôi đã đọc hướng dẫn và đồng ý tham gia cũng như cho phép lưu các thông tin nêu trên.">안내를 읽었으며 검사 참여와 위 정보 저장에 동의합니다.</span></span></label>
+<button class="primary" id="begin"><span data-vi="Bật webcam và bắt đầu hiệu chỉnh">웹캠 켜고 보정 시작</span></button>
 </form>
 </section>
 <div id="studentTop"><p id="studentStatus" role="status" aria-live="polite"></p>
-<div class="row"><button id="advance" class="primary" hidden>다음</button><button id="retry" hidden>다시 보정</button><button id="end" hidden>검사 중단</button><button id="resend" class="primary" hidden>결과 저장 다시 시도</button></div></div>
-<div id="stage" hidden><button id="target" hidden aria-label="보정 기준점"></button><div id="reading" hidden><span id="a"></span><span id="middle"></span><span id="b"></span></div><div id="gazeDot" aria-hidden="true" hidden></div><section id="comprehension" aria-labelledby="questionText" hidden><h2 id="questionText" tabindex="-1"></h2><div class="row" id="answers"></div></section></div>
+<div class="row"><button id="advance" class="primary" hidden><span data-vi="Tiếp tục">다음</span></button><button id="retry" hidden><span data-vi="Hiệu chỉnh lại">다시 보정</span></button><button id="end" hidden><span data-vi="Dừng bài kiểm tra">검사 중단</span></button><button id="resend" class="primary" hidden><span data-vi="Thử lưu kết quả lại">결과 저장 다시 시도</span></button></div></div>
+<div id="stage" hidden><button id="target" hidden aria-label="보정 기준점"></button><div id="reading" lang="ko" hidden><span id="a"></span><span id="middle"></span><span id="b"></span></div><div id="gazeDot" aria-hidden="true" hidden></div><section id="comprehension" lang="ko" aria-labelledby="questionText" hidden><h2 id="questionText" tabindex="-1"></h2><div class="row" id="answers"></div></section></div>
 </div>
 </main>
 <script>
@@ -320,6 +322,10 @@ function renderLinks(id,key,title) {
  const link = new URL(studentUrl);
  link.searchParams.set('id',id);
  el('studentLink').value=link.href;
+ const vietnameseLink = new URL(link);
+ vietnameseLink.searchParams.set('lang','vi');
+ el('studentLinkVi').value=vietnameseLink.href;
+ el('copyStudentVi').onclick=()=>copy('studentLinkVi');
  const preview = new URL(link);
  preview.searchParams.set('preview','1');
  el('previewLink').href=preview.href;
@@ -497,15 +503,30 @@ function drawTrace(trace) {
 }
 
 async function startStudent() {
+ const vietnamese=params.get('lang')==='vi';
+ const tr=(ko,vi)=>vietnamese?vi:ko;
+ if(vietnamese){
+  document.documentElement.lang='vi';
+  document.title='Phòng thí nghiệm đọc Paran';
+  el('student').querySelectorAll('[data-vi]').forEach(element=>{element.textContent=element.dataset.vi});
+  el('code').placeholder='Ví dụ: S001';
+  el('target').setAttribute('aria-label','Điểm hiệu chỉnh');
+ }
+ for(const lang of ['ko','vi']){
+  const link=new URL(location.href);
+  link.searchParams.set('lang',lang);
+  el(lang==='ko'?'studentKo':'studentVi').href=link.href;
+ }
  show('student');
  const preview = params.get('preview')==='1';
- set('viewLabel',preview?'교사용 학생 검사 점검':'학생용 검사');
+ set('viewLabel',preview?tr("교사용 학생 검사 점검","Chế độ xem thử dành cho giáo viên"):tr("학생용 검사","Bài kiểm tra dành cho người học"));
  const studyId=params.get('id');
  let config;
  try {
-  if(!/^[a-f\d-]{36}$/.test(studyId))throw new Error('교사가 보내 준 검사 링크를 열어 주세요.');
+  if(!/^[a-f\d-]{36}$/.test(studyId))throw new Error(tr("교사가 보내 준 검사 링크를 열어 주세요.","Hãy mở đường liên kết do giáo viên gửi."));
   config=await api('/'+studyId);
- }catch(error){set('testTitle','검사를 열 수 없습니다.');studentStatus(error.message);return}
+ }catch(error){set('testTitle',tr("검사를 열 수 없습니다.","Không thể mở bài kiểm tra."));studentStatus(tr(error.message,'Hãy kiểm tra kết nối mạng và mở lại đường liên kết do giáo viên gửi.'));return}
+ el('testTitle').lang='ko';
  set('testTitle',config.title);
  show('nameLabel',!preview && config.collectName);
  el('name').required=!preview && config.collectName;
@@ -514,7 +535,7 @@ async function startStudent() {
   show('studentStorageNote',false);
   el('code').closest('label').hidden=true;
   el('code').required=false;
-  set('consentLabel','안내를 읽었으며 웹캠을 사용한 점검에 동의합니다.');
+  set('consentLabel',tr("안내를 읽었으며 웹캠을 사용한 점검에 동의합니다.","Tôi đã đọc hướng dẫn và đồng ý dùng webcam để xem thử."));
  }
  show('join');
 
@@ -578,21 +599,21 @@ async function startStudent() {
   if(window.webgazer)return Promise.resolve(window.webgazer);
   return new Promise((resolve,reject)=>{
    const lib=node('script');
-   const timeout=setTimeout(()=>{lib.remove();reject(new Error('시선 추적 모듈 연결 시간이 초과됐습니다.'))},20000);
+   const timeout=setTimeout(()=>{lib.remove();reject(new Error(tr("시선 추적 모듈 연결 시간이 초과됐습니다.","Đã hết thời gian chờ tải công cụ theo dõi ánh mắt.")))},20000);
    lib.src='https://cdn.jsdelivr.net/npm/webgazer@3.4.0/dist/webgazer.js';
-   lib.onload=()=>{clearTimeout(timeout);window.webgazer ? resolve(window.webgazer) : reject(new Error('시선 추적 모듈을 열 수 없습니다.'))};
-   lib.onerror=()=>{clearTimeout(timeout);lib.remove();reject(new Error('시선 추적 모듈을 불러오지 못했습니다.'))};
+   lib.onload=()=>{clearTimeout(timeout);window.webgazer ? resolve(window.webgazer) : reject(new Error(tr("시선 추적 모듈을 열 수 없습니다.","Không thể mở công cụ theo dõi ánh mắt.")))};
+   lib.onerror=()=>{clearTimeout(timeout);lib.remove();reject(new Error(tr("시선 추적 모듈을 불러오지 못했습니다.","Không tải được công cụ theo dõi ánh mắt.")))};
    document.head.append(lib);
   });
  }
  el('join').onsubmit=async event=>{
   event.preventDefault();
   const code=el('code').value.trim(),name=config.collectName?el('name').value.trim():'';
-  if(!preview && (!code || (config.collectName && !name))){studentStatus('참가자 번호와 필수 정보를 입력해 주세요.');return}
+  if(!preview && (!code || (config.collectName && !name))){studentStatus(tr("참가자 번호와 필수 정보를 입력해 주세요.","Hãy nhập mã người tham gia và các thông tin bắt buộc."));return}
   el('begin').disabled=true;
-  studentStatus('시선 추적 모듈을 여는 중입니다. 브라우저에서 카메라 사용을 허용해 주세요.');
+  studentStatus(tr("시선 추적 모듈을 여는 중입니다. 브라우저에서 카메라 사용을 허용해 주세요.","Đang khởi động công cụ theo dõi ánh mắt. Hãy cho phép trình duyệt sử dụng camera."));
   try {
-   if(!navigator.mediaDevices?.getUserMedia)throw new Error('PC의 Chrome 또는 Edge에서 검사 링크를 직접 열어 주세요.');
+   if(!navigator.mediaDevices?.getUserMedia)throw new Error(tr("PC의 Chrome 또는 Edge에서 검사 링크를 직접 열어 주세요.","Hãy mở đường liên kết trực tiếp bằng Chrome hoặc Edge trên máy tính."));
    tracker=await loadTracker();
    tracker.saveDataAcrossSessions(false);
    tracker.showVideoPreview(false);
@@ -600,15 +621,15 @@ async function startStudent() {
    tracker.setGazeListener(gaze);
    await tracker.begin();
    tracker.removeMouseEventListeners();
-   if(!el(tracker.params.videoElementId)?.srcObject?.getVideoTracks().some(track=>track.readyState==='live'))throw new Error('웹캠 연결을 확인해 주세요.');
+   if(!el(tracker.params.videoElementId)?.srcObject?.getVideoTracks().some(track=>track.readyState==='live'))throw new Error(tr("웹캠 연결을 확인해 주세요.","Hãy kiểm tra kết nối webcam."));
    session={id:crypto.randomUUID(),code,name,trials:[]};
    show('intro',false);show('stage');show('end');
    await calibrate();
   }catch(error){
    stopTracking();
    studentStatus(error.name==='NotAllowedError'
-    ? '카메라 접근이 거부됐습니다. 주소창의 사이트 권한에서 카메라를 허용한 뒤 다시 시작해 주세요.'
-    : '시선 추적을 시작할 수 없습니다. '+error.message);
+    ? tr("카메라 접근이 거부됐습니다. 주소창의 사이트 권한에서 카메라를 허용한 뒤 다시 시작해 주세요.","Trình duyệt chưa được phép dùng camera. Hãy cấp quyền camera trong cài đặt trang web rồi thử lại.")
+    : tr('시선 추적을 시작할 수 없습니다. '+error.message,'Không thể bắt đầu theo dõi ánh mắt. Hãy kiểm tra webcam và thử lại.'));
    el('begin').disabled=false;
   }
  };
@@ -619,7 +640,7 @@ async function startStudent() {
   if(current!==generation)return;
   box=stage.getBoundingClientRect();
   state='calibration';
-  studentStatus('파란 점을 바라보며 같은 점을 5번 클릭하세요. 점이 옮겨가면 반복하세요.');
+  studentStatus(tr("파란 점을 바라보며 같은 점을 5번 클릭하세요. 점이 옮겨가면 반복하세요.","Nhìn vào chấm xanh và bấm vào đó 5 lần. Khi chấm chuyển sang vị trí khác, hãy lặp lại."));
   setPoint(grid[pointIndex],'5');
  }
  target.onclick=()=>{
@@ -636,7 +657,7 @@ async function startStudent() {
   state='validation';
   const current=generation;
   const errors=[];
-  studentStatus('파란 점이 움직이면 클릭 없이 시선으로 따라가세요.');
+  studentStatus(tr("파란 점이 움직이면 클릭 없이 시선으로 따라가세요.","Hãy nhìn theo chấm xanh khi nó di chuyển, không cần bấm chuột."));
   for(const point of checks){
    setPoint(point,'');
    const rect=target.getBoundingClientRect(), x=rect.left+rect.width/2,y=rect.top+rect.height/2;
@@ -650,13 +671,13 @@ async function startStudent() {
   show('target',false);show('retry');
   if(errors.length<3){
    state='recheck';
-   studentStatus('5개 중 '+errors.length+'개 지점에서 시선을 얻었습니다. 카메라 정면에 앉고 조명을 확인한 뒤 다시 보정하세요.');
+   studentStatus(tr('5개 중 '+errors.length+'개 지점에서 시선을 얻었습니다. 카메라 정면에 앉고 조명을 확인한 뒤 다시 보정하세요.',`Chỉ ghi nhận được ánh mắt ở ${errors.length}/5 điểm. Hãy ngồi đối diện webcam, kiểm tra ánh sáng rồi hiệu chỉnh lại.`));
    return;
   }
   calibration={error:Math.round(median(errors)),checkPoints:errors.length};
   state='ready';
-  studentStatus('보정 확인 '+calibration.checkPoints+'/5 · 위치 오차 '+calibration.error+' px. 오차가 크거나 얼굴 위치가 변했으면 다시 보정하세요.');
-  el('advance').textContent='연습 시작';show('advance');
+  studentStatus(tr('보정 확인 '+calibration.checkPoints+'/5 · 위치 오차 '+calibration.error+' px. 오차가 크거나 얼굴 위치가 변했으면 다시 보정하세요.',`Kiểm tra hiệu chỉnh: ${calibration.checkPoints}/5 điểm · Sai số vị trí: ${calibration.error} px. Hãy hiệu chỉnh lại nếu sai số lớn hoặc bạn đã thay đổi tư thế.`));
+  el('advance').textContent=tr("연습 시작","Bắt đầu luyện tập");show('advance');
  }
  function display(item) {
   for(const key of ['a','middle','b']){
@@ -676,7 +697,7 @@ async function startStudent() {
   box=stage.getBoundingClientRect();
   if(!display(item)){
    clearStage();state='recheck';
-   studentStatus('문장이 화면 한 줄에 들어가지 않습니다. 더 넓은 PC 화면에서 다시 시작하거나 교사에게 알려 주세요.');
+   studentStatus(tr("문장이 화면 한 줄에 들어가지 않습니다. 더 넓은 PC 화면에서 다시 시작하거나 교사에게 알려 주세요.","Câu không vừa trên một dòng. Hãy thử lại trên màn hình rộng hơn hoặc báo cho giáo viên."));
    show('retry');return;
   }
   const norm=(value,origin,extent)=>Math.max(0,Math.min(1,(value-origin)/extent));
@@ -691,7 +712,7 @@ async function startStudent() {
    sentenceX:[norm(a.left,box.left,box.width),norm(b.right,box.left,box.width)]
   };
   samples=[];
-  studentStatus('문장 '+(index+1)+' / '+config.items.length+' · 다 읽으면 시선을 문장에 둔 채 스페이스바를 누르세요.');
+  studentStatus(tr('문장 '+(index+1)+' / '+config.items.length+' · 다 읽으면 시선을 문장에 둔 채 스페이스바를 누르세요.',`Câu ${index+1} / ${config.items.length} · Đọc xong, hãy giữ mắt nhìn vào câu và nhấn phím cách (Space).`));
   state='trial';
   started=performance.now();
   limitTimer=setTimeout(()=>finishTrial(),60000);
@@ -707,7 +728,7 @@ async function startStudent() {
   if(item.question){
    state='question';
    clearStage();
-   studentStatus('방금 읽은 문장의 내용을 바탕으로 답을 고르세요.');
+   studentStatus(tr("방금 읽은 문장의 내용을 바탕으로 답을 고르세요.","Hãy chọn đáp án dựa trên nội dung câu vừa đọc."));
    set('questionText',item.question);
    const options=['1','2'].map(choice=>{
     const button=node('button',item['option'+choice]);
@@ -735,7 +756,7 @@ async function startStudent() {
   if(state==='ready'){
    clearStage();state='practice';
    display({a:config.practice,middle:'',b:''});
-   studentStatus('연습 문장입니다. 다 읽으면 시선을 문장에 둔 채 스페이스바를 눌러 본검사를 시작하세요.');
+   studentStatus(tr("연습 문장입니다. 다 읽으면 시선을 문장에 둔 채 스페이스바를 눌러 본검사를 시작하세요.","Đây là câu luyện tập. Đọc xong, hãy giữ mắt nhìn vào câu và nhấn phím cách (Space) để bắt đầu làm bài."));
   }else if(state==='practice')nextTrial();
   else if(state==='trial')finishTrial();
  }
@@ -746,18 +767,18 @@ async function startStudent() {
  });
  el('retry').onclick=()=>calibrate();
  el('end').onclick=()=>{
-  if(!window.confirm(preview?'학생 검사 점검을 중단할까요?':'검사를 중단할까요? 이미 읽은 문장만 저장합니다.'))return;
+  if(!window.confirm(preview?tr("학생 검사 점검을 중단할까요?","Bạn có muốn dừng chế độ xem thử không?"):tr("검사를 중단할까요? 이미 읽은 문장만 저장합니다.","Bạn có muốn dừng bài kiểm tra không? Hệ thống chỉ lưu các câu đã đọc xong.")))return;
   if(session.trials.length){submit('partial');return}
   ++generation;clearStage();stopTracking();state='done';
   show('stage',false);show('end',false);
-  studentStatus('검사를 중단했습니다. 제출한 문장은 없습니다.');
+  studentStatus(tr("검사를 중단했습니다. 제출한 문장은 없습니다.","Đã dừng bài kiểm tra. Chưa có kết quả nào được gửi."));
  };
  function checkGeometry(){
   if(!box||!['calibration','validation','ready','practice','trial'].includes(state))return;
   const rect=stage.getBoundingClientRect();
   if(['left','top','width','height'].every(key=>Math.abs(rect[key]-box[key])<3))return;
   ++generation;state='recheck';clearStage();show('retry');
-  studentStatus('실험 화면 위치가 바뀌었습니다. 같은 문장을 다시 읽기 전에 보정해 주세요.');
+  studentStatus(tr("실험 화면 위치가 바뀌었습니다. 같은 문장을 다시 읽기 전에 보정해 주세요.","Vị trí vùng làm bài đã thay đổi. Hãy hiệu chỉnh lại trước khi đọc lại câu."));
  }
  window.addEventListener('resize',checkGeometry);
  window.addEventListener('scroll',checkGeometry);
@@ -766,20 +787,20 @@ async function startStudent() {
   show('stage',false);show('end',false);show('resend',false);
   if(preview){
    state='done';
-   studentStatus('학생 검사 점검을 마쳤습니다. 결과는 저장되지 않았습니다.');
+   studentStatus(tr("학생 검사 점검을 마쳤습니다. 결과는 저장되지 않았습니다.","Đã hoàn tất xem thử. Kết quả xem thử không được lưu."));
    return;
   }
   session.state=submissionState;
   session.error=calibration.error;
   session.checkPoints=calibration.checkPoints;
-  studentStatus('결과를 저장하고 있습니다.');
+  studentStatus(tr("결과를 저장하고 있습니다.","Đang lưu kết quả."));
   try {
    await api('/'+studyId+'/submit',post(session));
    state='done';
-   studentStatus(submissionState==='completed' ? '검사를 마쳤습니다. 결과가 저장되었습니다. 이 창을 닫아도 됩니다.' : '읽기를 마친 문장의 결과가 저장되었습니다.');
+   studentStatus(submissionState==='completed' ? tr("검사를 마쳤습니다. 결과가 저장되었습니다. 이 창을 닫아도 됩니다.","Bạn đã hoàn thành bài kiểm tra và kết quả đã được lưu. Bạn có thể đóng cửa sổ này.") : tr("읽기를 마친 문장의 결과가 저장되었습니다.","Đã lưu kết quả của các câu đã đọc xong."));
   }catch(error){
    state='retry-save';show('resend');
-   studentStatus('결과 저장에 실패했습니다. 창을 닫지 말고 결과 저장을 다시 시도해 주세요. '+error.message);
+   studentStatus(tr('결과 저장에 실패했습니다. 창을 닫지 말고 결과 저장을 다시 시도해 주세요. '+error.message,'Không lưu được kết quả. Hãy giữ cửa sổ này mở và chọn Thử lưu kết quả lại.'));
   }
  }
  el('resend').onclick=()=>submit(session.state);
