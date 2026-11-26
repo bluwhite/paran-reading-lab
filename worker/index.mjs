@@ -31,7 +31,7 @@ async function body(request) {
     const {done,value} = await reader.read();
     if (done) break;
     length += value.byteLength;
-    if (length > 160000) {
+    if (length > 400000) {
       await reader.cancel();
       throw new TypeError('결과 파일이 너무 큽니다.');
     }
@@ -43,7 +43,7 @@ async function body(request) {
 function validConfig(config) {
   return config && bounded(config.title,80) && bounded(config.practice,110) &&
     number(config.font,24,64) && typeof config.collectName === 'boolean' &&
-    Array.isArray(config.items) && number(config.items.length,1,10) &&
+    Array.isArray(config.items) && number(config.items.length,1,18) &&
     config.items.every(item => item && [item.a,item.middle,item.b].every((part,index) =>
       typeof part === 'string' && part.length <= 90 && (index === 1 || part.trim())) &&
       item.a.length + item.middle.length + item.b.length <= 135);
