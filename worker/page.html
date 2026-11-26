@@ -67,8 +67,8 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <section class="panel">
 <h2>새 검사 설정</h2>
 <form id="configForm">
-<label>검사 이름<input id="title" maxlength="80" required value="영어 읽기 · 한국어 이해 5문장 예비검사"></label>
-<label>연습 문장<input id="practice" maxlength="110" required value="Mina opened the window."></label>
+<label>검사 이름<input id="title" maxlength="80" required value="한국어 문장 읽기 5문장 예비검사"></label>
+<label>연습 문장<input id="practice" maxlength="110" required value="오늘 아침에 친구가 학교 앞에서 우산을 빌려줬어요."></label>
 <div class="fields"><label>본검사 문장 수<select id="count"></select></label><label>글자 크기<select id="font"></select></label></div>
 <label><input id="collectName" type="checkbox"> 참가자 이름도 입력받기</label>
 <p class="small">문장을 앞부분, 가운데, 뒤로 나눠 입력하세요. 학생에게는 한 줄로 표시되며, 가로 위치는 문장 전체의 너비를 기준으로 분석합니다.</p>
@@ -199,49 +199,49 @@ function startTeacher() {
  el('count').value='5';el('font').value='44';
  const items = [
   {
-    "a": "Before class,",
-    "middle": "Mina placed the blue notebook",
-    "b": "beside the window.",
-    "question": "미나는 파란 공책을 어디에 두었습니까?",
-    "option1": "창문 옆",
-    "option2": "책상 아래",
-    "correct": "1"
-  },
-  {
-    "a": "After lunch,",
-    "middle": "Daniel lent his umbrella",
-    "b": "to his younger sister.",
-    "question": "다니엘은 누구에게 우산을 빌려주었습니까?",
-    "option1": "친구",
-    "option2": "여동생",
+    "a": "지난 금요일 오후 교실에서",
+    "middle": "수진이가 같은 반 민호에게",
+    "b": "행사 안내문을 두 장 건넸어요.",
+    "question": "누가 안내문을 받았어요?",
+    "option1": "수진이",
+    "option2": "민호",
     "correct": "2"
   },
   {
-    "a": "The bus arrived",
-    "middle": "ten minutes late",
-    "b": "because of the rain.",
-    "question": "버스가 늦게 도착한 이유는 무엇입니까?",
-    "option1": "비가 와서",
-    "option2": "도로 공사를 해서",
+    "a": "지난 월요일 오후에 유나가",
+    "middle": "명동에서 직접 구입한 옷을",
+    "b": "홍대에서 친한 친구에게 선물했어요.",
+    "question": "유나는 어디에서 옷을 샀어요?",
+    "option1": "명동",
+    "option2": "홍대",
     "correct": "1"
   },
   {
-    "a": "On Tuesday,",
-    "middle": "the library closed early",
-    "b": "for a staff meeting.",
-    "question": "도서관은 왜 일찍 문을 닫았습니까?",
-    "option1": "전기가 끊겨서",
-    "option2": "직원 회의가 있어서",
+    "a": "지난 금요일 늦은 오후에",
+    "middle": "지수가 공항에서 짐을 찾자마자",
+    "b": "민호에게 휴대전화로 전화를 걸었어요.",
+    "question": "지수는 무엇을 먼저 했어요?",
+    "option1": "민호에게 전화를 걸었어요.",
+    "option2": "공항에서 짐을 찾았어요.",
     "correct": "2"
   },
   {
-    "a": "After the show,",
-    "middle": "Julia found her ticket",
-    "b": "inside her coat pocket.",
-    "question": "줄리아는 표를 어디에서 찾았습니까?",
-    "option1": "코트 주머니 안",
-    "option2": "가방 안",
+    "a": "수아는 어제 늦은 오후에",
+    "middle": "언니가 저녁 준비를 마쳤다고",
+    "b": "아버지에게 전화로 짧게 말했어요.",
+    "question": "누가 저녁 준비를 마쳤어요?",
+    "option1": "수아의 언니",
+    "option2": "수아",
     "correct": "1"
+  },
+  {
+    "a": "어제 오후 쉬는 시간에",
+    "middle": "철수가 같은 반 민수를",
+    "b": "다른 친구들 앞에서 울렸어요.",
+    "question": "누가 울었어요?",
+    "option1": "철수",
+    "option2": "민수",
+    "correct": "2"
   }
 ];
  const readItems = () => [...el('items').children].map(box=>Object.fromEntries([...box.querySelectorAll('input, select')].map(input=>[input.name,input.value.trim()])));
