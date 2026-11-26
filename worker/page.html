@@ -419,6 +419,18 @@ function estimateReturns(trial) {
  }
  return stable>=3 && trial.ms>0 && covered/trial.ms>=.55?events:null;
 }
+function shuffledItemIndices(count, random = Math.random) {
+ const indices=Array.from({length:count},(_,i)=>i);
+ for(let i=indices.length-1;i>0;i--){
+  const j=Math.floor(random()*(i+1));
+  [indices[i],indices[j]]=[indices[j],indices[i]];
+ }
+ return indices;
+}
+function originalItemIndex(trial,position,count) {
+ const index=trial.itemIndex ?? position;
+ return Number.isInteger(index) && index>=0 && index<count ? index : null;
+}
 async function loadReport(id,key) {
  el('refresh').onclick=()=>loadReport(id,key);
  el('print').onclick=()=>window.print();
@@ -432,7 +444,7 @@ async function loadReport(id,key) {
   const unique=new Set(sessions.map(s=>s.participant)).size;
   set('reportMeta','참가자 번호 '+unique+'개 · 제출 '+sessions.length+'건 · 완료 '+completed+'건 · 중단 '+(sessions.length-completed)+'건 · 글자 '+config.font+' px');
   const aggregate=config.items.map((item,i)=>{
-   const trials=sessions.map(session=>session.trials[i]).filter(Boolean);
+   const trials=sessions.flatMap(session=>session.trials.filter((trial,position)=>originalItemIndex(trial,position,config.items.length)===i));
    const trends=trials.map(horizontalTrend).filter(trend=>trend.total>=3);
    const ratios=[0,1,2].map(j=>trends.length?trends.reduce((sum,t)=>sum+t.ratios[j],0)/trends.length:null);
    const assessed=trials.map(estimateReturns).filter(result=>result!==null);
@@ -441,17 +453,19 @@ async function loadReport(id,key) {
    return [i+1,full(item),trials.length,trends.length,...ratios.map(pct),ms(mean),assessed.length,withReturns,pct(assessed.length?withReturns/assessed.length:null)];
   });
   table('aggregate',['문장','내용','제출','비율 분석 가능','평균 왼쪽','평균 중앙','평균 오른쪽','평균 읽기(ms)','되돌아보기 판정 가능','1회 이상','1회 이상 비율'],aggregate);
-  const labels=['참가자 번호',...(config.collectName?['이름']:[]),'상태','문장','읽기(ms)','왼쪽 비율','중앙 비율','오른쪽 비율','가장 많이 관측된 구간','가로 표본 수','문장 범위','추적률','보정 오차(px)','추정 되돌아보기 횟수','이해 질문','학생 답변','이해 문항 결과'];
+  const labels=['참가자 번호',...(config.collectName?['이름']:[]),'상태','문장','제시 순서','읽기(ms)','왼쪽 비율','중앙 비율','오른쪽 비율','가장 많이 관측된 구간','가로 표본 수','문장 범위','추적률','보정 오차(px)','추정 되돌아보기 횟수','이해 질문','학생 답변','이해 문항 결과'];
   const rows=[], traces=[];
   for(const s of sessions){
    s.trials.forEach((trial,i)=>{
     const trend=horizontalTrend(trial);
     const returns=estimateReturns(trial);
-    const item=config.items[i];
+    const itemIndex=originalItemIndex(trial,i,config.items.length);
+    if(itemIndex===null)return;
+    const item=config.items[itemIndex];
     const answer=trial.answer==='1'||trial.answer==='2'?item['option'+trial.answer]:null;
     const score=item.question?(answer?(trial.answer===item.correct?'정답':'오답'):'미응답'):'';
-    rows.push([s.participant,...(config.collectName?[s.name]:[]),s.state==='completed'?'완료':'중단',i+1,trial.ms,...trend.ratios.map(v=>v===null?null:Number(v.toFixed(4))),trend.label,trend.total,trend.estimated?'기존 자료 · 근사':'실측 배치',Number(trial.summary.coverage.toFixed(4)),s.error,returns===null?'판정 불가':returns.length,item.question||'',answer,score]);
-    traces.push({label:s.participant+' · 문장 '+(i+1)+' · '+s.created_at.slice(0,19),trial,returns,item:config.items[i]});
+    rows.push([s.participant,...(config.collectName?[s.name]:[]),s.state==='completed'?'완료':'중단',itemIndex+1,i+1,trial.ms,...trend.ratios.map(v=>v===null?null:Number(v.toFixed(4))),trend.label,trend.total,trend.estimated?'기존 자료 · 근사':'실측 배치',Number(trial.summary.coverage.toFixed(4)),s.error,returns===null?'판정 불가':returns.length,item.question||'',answer,score]);
+    traces.push({label:s.participant+' · 문장 '+(itemIndex+1)+' · 제시 '+(i+1)+'번째 · '+s.created_at.slice(0,19),trial,returns,item});
    });
   }
   const percentages=new Set(['왼쪽 비율','중앙 비율','오른쪽 비율','추적률']);
@@ -545,7 +559,7 @@ async function startStudent() {
  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  let tracker, state='intro', generation=0, pointIndex=0, clicks=0, box;
  let samples=[], started=0, trialBounds, validationSamples=null, calibration=null, limitTimer;
- let session, index=0, gazeTimer;
+ let session, index=0, gazeTimer, itemOrder;
  const stopTracking=()=>{
   const video=tracker && el(tracker.params.videoElementId);
   if(video?.srcObject){
@@ -622,6 +636,7 @@ async function startStudent() {
    await tracker.begin();
    tracker.removeMouseEventListeners();
    if(!el(tracker.params.videoElementId)?.srcObject?.getVideoTracks().some(track=>track.readyState==='live'))throw new Error(tr("웹캠 연결을 확인해 주세요.","Hãy kiểm tra kết nối webcam."));
+   itemOrder=shuffledItemIndices(config.items.length);
    session={id:crypto.randomUUID(),code,name,trials:[]};
    show('intro',false);show('stage');show('end');
    await calibrate();
@@ -693,7 +708,7 @@ async function startStudent() {
  }
  function nextTrial() {
   clearStage();
-  const item=config.items[index];
+  const item=config.items[itemOrder[index]];
   box=stage.getBoundingClientRect();
   if(!display(item)){
    clearStage();state='recheck';
@@ -722,9 +737,9 @@ async function startStudent() {
   const elapsed=Math.min(60000,Math.round(performance.now()-started));
   if(elapsed<250)return;
   clearTimeout(limitTimer);
-  const trial={ms:elapsed,samples,...trialBounds};
+  const trial={itemIndex:itemOrder[index],ms:elapsed,samples,...trialBounds};
   session.trials.push(trial);
-  const item=config.items[index];
+  const item=config.items[itemOrder[index]];
   if(item.question){
    state='question';
    clearStage();
