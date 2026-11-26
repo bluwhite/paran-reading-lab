@@ -67,7 +67,7 @@ canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:9px}
 <section class="panel">
 <h2>새 검사 설정</h2>
 <form id="configForm">
-<label>검사 이름<input id="title" maxlength="80" required value="한국어 문장 읽기 5문장 예비검사"></label>
+<label>검사 이름<input id="title" maxlength="80" required value="한국어 문장 읽기 18문장 O/X 검사"></label>
 <label>연습 문장<input id="practice" maxlength="110" required value="오늘 아침에 친구가 학교 앞에서 우산을 빌려줬어요."></label>
 <div class="fields"><label>본검사 문장 수<select id="count"></select></label><label>글자 크기<select id="font"></select></label></div>
 <label><input id="collectName" type="checkbox"> 참가자 이름도 입력받기</label>
@@ -196,53 +196,170 @@ function startTeacher() {
   admin = entered;
   openSetup();
  };
- for (let i=1;i<=10;i++) el('count').append(new Option(i+'개',String(i)));
+ for (let i=1;i<=18;i++) el('count').append(new Option(i+'개',String(i)));
  for (const size of [24,28,32,36,40,44,48,52,56,60,64]) el('font').append(new Option(size+' px',String(size)));
- el('count').value='5';el('font').value='44';
+ el('count').value='18';el('font').value='44';
  const items = [
   {
-    "a": "지난 금요일 오후 교실에서",
-    "middle": "수진이가 같은 반 민호에게",
-    "b": "행사 안내문을 두 장 건넸어요.",
-    "question": "누가 안내문을 받았어요?",
-    "option1": "수진이",
-    "option2": "민호",
+    "a": "민수가 어제 도서관에서 빌린",
+    "middle": "새 한국어 책은 그림이 많아서",
+    "b": "처음 읽는 사람도 쉽게 이해해요.",
+    "question": "민수가 빌린 책은 읽기 어렵습니까?",
+    "option1": "O",
+    "option2": "X",
     "correct": "2"
   },
   {
-    "a": "지난 월요일 오후에 유나가",
-    "middle": "명동에서 직접 구입한 옷을",
-    "b": "홍대에서 친한 친구에게 선물했어요.",
-    "question": "유나는 어디에서 옷을 샀어요?",
-    "option1": "명동",
-    "option2": "홍대",
-    "correct": "1"
-  },
-  {
-    "a": "지난 금요일 늦은 오후에",
-    "middle": "지수가 공항에서 짐을 찾자마자",
-    "b": "민호에게 휴대전화로 전화를 걸었어요.",
-    "question": "지수는 무엇을 먼저 했어요?",
-    "option1": "민호에게 전화를 걸었어요.",
-    "option2": "공항에서 짐을 찾았어요.",
+    "a": "지영이가 아침에 시장에서 산",
+    "middle": "빨간 사과는 맛이 아주 좋아서",
+    "b": "동생이 혼자서 두 개를 다 먹었어요.",
+    "question": "동생은 사과를 한 개만 먹었습니까?",
+    "option1": "O",
+    "option2": "X",
     "correct": "2"
   },
   {
-    "a": "수아는 어제 늦은 오후에",
-    "middle": "언니가 저녁 준비를 마쳤다고",
-    "b": "아버지에게 전화로 짧게 말했어요.",
-    "question": "누가 저녁 준비를 마쳤어요?",
-    "option1": "수아의 언니",
-    "option2": "수아",
+    "a": "선생님이 수업 시간에 적어 준",
+    "middle": "중요한 단어는 집에 가서 다시",
+    "b": "공책에 정리하면 시험에 도움이 돼요.",
+    "question": "선생님이 적어 준 단어를 집에 가서 다시 보면 좋습니까?",
+    "option1": "O",
+    "option2": "X",
     "correct": "1"
   },
   {
-    "a": "어제 오후 쉬는 시간에",
-    "middle": "철수가 같은 반 민수를",
-    "b": "다른 친구들 앞에서 울렸어요.",
-    "question": "누가 울었어요?",
-    "option1": "철수",
-    "option2": "민수",
+    "a": "흐린 날에 친구와 함께 마신",
+    "middle": "따뜻한 커피는 기분이 좋아져서",
+    "b": "오후에 공부할 힘도 많이 생겼어요.",
+    "question": "따뜻한 커피를 마신 뒤 오후에 기운이 없어졌습니까?",
+    "option1": "O",
+    "option2": "X",
+    "correct": "2"
+  },
+  {
+    "a": "주말에 가족과 같이 걸었던",
+    "middle": "공원 길은 나무가 많고 조용해서",
+    "b": "매일 산책하기에 정말 좋은 곳이에요.",
+    "question": "주말에 갔던 공원 길은 차 소리가 시끄럽습니까?",
+    "option1": "O",
+    "option2": "X",
+    "correct": "2"
+  },
+  {
+    "a": "동생이 생일 선물로 사 준",
+    "middle": "작은 가방은 가볍고 튼튼해서",
+    "b": "학교에 갈 때마다 편하게 들고 다녀요.",
+    "question": "이 가방은 학교에 갈 때 쓰기 불편합니까?",
+    "option1": "O",
+    "option2": "X",
+    "correct": "2"
+  },
+  {
+    "a": "수진이는 오늘 저녁에 친구와",
+    "middle": "같이 영화를 보자고 했다고",
+    "b": "민수에게 문자 메시지로 알려 주었어요.",
+    "question": "수진이는 민수에게 영화 이야기를 문자 메시지로 알려 주었어요.",
+    "option1": "O",
+    "option2": "X",
+    "correct": "1"
+  },
+  {
+    "a": "선생님은 내일 한국어 시험이",
+    "middle": "오전 아홉 시에 시작한다고",
+    "b": "교실에 있던 학생들에게 미리 말씀하셨어요.",
+    "question": "내일 한국어 시험은 오후에 시작해요.",
+    "option1": "O",
+    "option2": "X",
+    "correct": "2"
+  },
+  {
+    "a": "유나는 어제 밤에 비가",
+    "middle": "많이 와서 우산을 꼭",
+    "b": "가지고 나가야 한다고 동생에게 말했어요.",
+    "question": "유나는 동생에게 우산 없이 나가도 된다고 했어요.",
+    "option1": "O",
+    "option2": "X",
+    "correct": "2"
+  },
+  {
+    "a": "지훈이는 한국 음식이 처음에는",
+    "middle": "조금 맵지만 금방 익숙해진다고",
+    "b": "기숙사 친구들에게 웃으면서 이야기했어요.",
+    "question": "지훈이는 한국 음식이 금방 익숙해진다고 생각해요.",
+    "option1": "O",
+    "option2": "X",
+    "correct": "1"
+  },
+  {
+    "a": "어머니는 주말에 가족 여행을",
+    "middle": "가려면 숙소를 일찍 예약해야 한다고",
+    "b": "아침 식사 시간에 말씀하셨어요.",
+    "question": "어머니는 주말 가족 여행을 위해 숙소를 일찍 예약해야 한다고 하셨어요.",
+    "option1": "O",
+    "option2": "X",
+    "correct": "1"
+  },
+  {
+    "a": "도서관 직원은 책을 한",
+    "middle": "주일 더 읽고 싶으면",
+    "b": "대출 기간을 연장할 수 있다고 설명했어요.",
+    "question": "책을 더 읽고 싶어도 대출 기간을 늘릴 수 없어요.",
+    "option1": "O",
+    "option2": "X",
+    "correct": "2"
+  },
+  {
+    "a": "민수는 아침에 일찍 일어나서",
+    "middle": "세수를 하고 따뜻한 우유를",
+    "b": "마신 뒤에 학교에 갔어요.",
+    "question": "민수는 학교에 가기 전에 우유를 마셨어요.",
+    "option1": "O",
+    "option2": "X",
+    "correct": "1"
+  },
+  {
+    "a": "유나는 토요일 오후에 지하철을",
+    "middle": "타고 시내에 있는 큰",
+    "b": "서점에 가서 노트를 샀어요.",
+    "question": "유나는 토요일 오후에 버스를 타고 서점에 갔어요.",
+    "option1": "O",
+    "option2": "X",
+    "correct": "2"
+  },
+  {
+    "a": "지훈이는 저녁 식사를 마치고",
+    "middle": "방을 깨끗하게 치운 다음",
+    "b": "창문을 닫고 일기를 썼어요.",
+    "question": "지훈이는 방을 치우기 전에 먼저 일기를 썼어요.",
+    "option1": "O",
+    "option2": "X",
+    "correct": "2"
+  },
+  {
+    "a": "수진이는 점심시간에 식당에서 친구와",
+    "middle": "김밥과 떡볶이를 같이 먹고",
+    "b": "교실로 돌아와서 쉬었어요.",
+    "question": "수진이는 점심시간에 친구와 함께 분식을 먹었어요.",
+    "option1": "O",
+    "option2": "X",
+    "correct": "1"
+  },
+  {
+    "a": "어머니는 저녁에 시장에서 생선과",
+    "middle": "두부를 사 가지고 집으로",
+    "b": "돌아와서 반찬을 만드셨어요.",
+    "question": "어머니는 시장에서 사 온 재료로 반찬을 만드셨어요.",
+    "option1": "O",
+    "option2": "X",
+    "correct": "1"
+  },
+  {
+    "a": "동생은 밤 열 시에",
+    "middle": "양치를 하고 불을 끈",
+    "b": "뒤에 침대에 누워서 잤어요.",
+    "question": "동생은 불을 끄지 않고 침대에 누워서 잤어요.",
+    "option1": "O",
+    "option2": "X",
     "correct": "2"
   }
 ];
